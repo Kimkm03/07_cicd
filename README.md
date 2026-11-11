@@ -30,7 +30,8 @@ cd 07_cicd
 | `infra/` | CloudFormation 템플릿: `wonit-a-cert.yaml`(버지니아 인증서), `wonit-a-aws.yaml`(서울 전체) |
 | `.github/workflows/` | `backend.yml`(서버 CI/CD), `frontend.yml`(화면 배포). 이미 켜져 있는 워크플로입니다 |
 | `ci/` | 위 워크플로의 원본 사본 (참고용) |
-| `load/` | k6 부하 테스트 스크립트 `transfers.js` |
+| `load/` | k6 부하 테스트 `transfers.js` (10단계), CloudShell 에서 모니터링 EC2 접속 `cloudshell-ssh.sh` |
+| `monitoring/grafana/` | Grafana 전체 상황판 JSON. 모니터링 EC2 가 켜질 때와 5분마다 내 fork 에서 받아 저절로 불러온다 |
 | `docs/` | 수업 자료와 참고 자료 |
 | `Dockerfile`, `Dockerfile-single` | 서버 이미지 (멀티 스테이지 / 한 단계) |
 

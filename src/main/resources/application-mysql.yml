@@ -13,7 +13,9 @@ spring:
       ddl-auto: update      # 처음 실행 때 표를 만들고, 다시 켜도 데이터를 지우지 않는다 (실무는 validate + Flyway 같은 도구)
   sql:
     init:
-      mode: never           # data.sql 은 H2 용 시드라 넣지 않는다. 데모 고객 · 계좌는 처음 한 번 직접 넣는다
+      mode: always          # 서버가 켜질 때마다 데모 데이터를 넣는다 (INSERT IGNORE 라 이미 있는 행은 건너뛴다)
+      data-locations: classpath:data-mysql.sql   # data.sql 은 H2 문법이라 MySQL 용 파일을 따로 쓴다
+      # 표는 JPA(ddl-auto: update)가 먼저 만들고 그다음 이 파일이 돈다 (application.yml 의 defer-datasource-initialization: true)
   h2:
     console:
       enabled: false        # 진짜 DB 를 쓸 때는 H2 콘솔을 끈다

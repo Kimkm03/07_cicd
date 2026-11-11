@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1060" width="1600" height="1060" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','WenQuanYi Zen Hei',sans-serif"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2b2f36"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a8290"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cf222e"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0969da"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a7f37"/></marker></defs><rect width="1600" height="1060" fill="#ffffff"/><text x="28" y="40" font-size="24" font-weight="700" fill="#1f2328" text-anchor="start">부하 테스트: k6 로 몰고, CloudWatch 경보가 서버 수를 바꾼다</text>
+<text x="28" y="64" font-size="13.5" font-weight="400" fill="#3d4450" text-anchor="start">k6 는 모니터링 EC2 에서 ALB 로 직접 요청합니다. 숫자는 두 갈래로 모입니다: 서버 안쪽(Prometheus → Grafana), 서버 바깥(ALB → CloudWatch → 경보 → Auto Scaling).</text>
+<rect x="24" y="90" width="1552" height="640" rx="10" fill="#fcfaff" stroke="#8c4fff" stroke-width="1.6"/>
+<rect x="24" y="90" width="138" height="26" rx="10" fill="#8c4fff"/>
+<rect x="24" y="102" width="138" height="14" fill="#8c4fff"/>
+<text x="36" y="108" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">VPC (서울)</text>
+<rect x="44" y="130" width="400" height="576" rx="10" fill="#fff4e8" stroke="#ed7100" stroke-width="1.6"/>
+<rect x="44" y="130" width="306" height="26" rx="10" fill="#ed7100"/>
+<rect x="44" y="142" width="306" height="14" fill="#ed7100"/>
+<text x="56" y="148" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">모니터링 EC2 (공개 서브넷 2c)</text>
+<rect x="62" y="172" width="364" height="150" rx="8" fill="#fff" stroke="#1a7f37" stroke-width="1.4"/>
+<circle cx="78" cy="189" r="11" fill="#1a7f37"/>
+<text x="78" y="193.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+<text x="94" y="194" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">k6 (docker grafana/k6)</text>
+<text x="74" y="214" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">가상 클라이언트 10명 → 50명</text>
+<text x="74" y="232" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">회원 2명 만들고 입금한 뒤</text>
+<text x="74" y="250" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">"계좌 목록 → 10원 이체" 를 반복</text>
+<text x="74" y="268" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">HOLD=8m  (경보 5분 + 새 서버 3분)</text>
+<rect x="62" y="344" width="364" height="126" rx="8" fill="#fff" stroke="#ed7100" stroke-width="1.4"/>
+<text x="74" y="366" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">Prometheus :9090</text>
+<text x="74" y="386" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">5초마다 서버마다 /actuator/prometheus</text>
+<text x="74" y="404" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">서버 목록은 EC2 API 에 물어봄</text>
+<text x="74" y="422" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">(ASG 꼬리표, 30초마다) → 늘어도 자동</text>
+<rect x="62" y="492" width="364" height="196" rx="8" fill="#fff" stroke="#ed7100" stroke-width="1.4"/>
+<circle cx="78" cy="509" r="11" fill="#ed7100"/>
+<text x="78" y="513.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+<text x="94" y="514" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">Grafana :3000</text>
+<text x="74" y="534" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">데이터 소스 2개: Prometheus · CloudWatch</text>
+<text x="74" y="552" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start"></text>
+<text x="74" y="570" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">우리WON 전체 상황판</text>
+<text x="74" y="588" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">  서버 수 · 초당 요청 · 평균 응답 시간</text>
+<text x="74" y="606" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">  평균 CPU · 힙 · DB 연결(기다리는 요청)</text>
+<text x="74" y="624" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">19004: 서버 한 대씩 자세히</text>
+<path d="M244,470 L244,490" fill="none" stroke="#ed7100" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="520" y="250" width="230" height="120" rx="8" fill="#f6f0ff" stroke="#8c4fff" stroke-width="1.4"/>
+<text x="532" y="272" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">ALB (공개)</text>
+<text x="532" y="292" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">web-sg: CloudFront +</text>
+<text x="532" y="310" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">모니터링 EC2 만 들어옴</text>
+<text x="532" y="328" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">BASE_URL = AlbDnsName</text>
+<path d="M426,250 L518,290" fill="none" stroke="#1a7f37" stroke-width="2.1" marker-end="url(#ao)"/>
+<rect x="436" y="235" width="100" height="17" fill="#fff" opacity="0.92"/>
+<text x="440" y="248" font-size="12.5" font-weight="600" fill="#1a7f37" text-anchor="start">② HTTP 요청</text>
+<rect x="800" y="130" width="380" height="576" rx="10" fill="#fff4e8" stroke="#ed7100" stroke-width="1.6"/>
+<text x="816" y="156" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">Auto Scaling 그룹 (사설 서브넷 2a · 2c)</text>
+<text x="816" y="176" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">서버 수 = MinServers ~ MaxServers (기본 1~3)</text>
+<rect x="820" y="196" width="340" height="92" rx="8" fill="#fff" stroke="#ed7100" stroke-width="1.4"/>
+<text x="832" y="218" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">앱 서버 1</text>
+<text x="832" y="238" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">처음부터 있던 서버</text>
+<text x="832" y="256" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">Spring Boot · /actuator/prometheus</text>
+<rect x="820" y="308" width="340" height="92" rx="8" fill="#fffdf8" stroke="#ed7100" stroke-width="1.4"/>
+<text x="832" y="330" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">앱 서버 2</text>
+<text x="832" y="350" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">경보 후 새로 켜짐</text>
+<text x="832" y="368" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">Spring Boot · /actuator/prometheus</text>
+<rect x="820" y="308" width="340" height="92" rx="8" fill="none" stroke="#ed7100" stroke-width="1.4" stroke-dasharray="6 4"/>
+<rect x="820" y="420" width="340" height="92" rx="8" fill="#fffdf8" stroke="#ed7100" stroke-width="1.4"/>
+<text x="832" y="442" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">앱 서버 3</text>
+<text x="832" y="462" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">경보 후 새로 켜짐</text>
+<text x="832" y="480" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">Spring Boot · /actuator/prometheus</text>
+<rect x="820" y="420" width="340" height="92" rx="8" fill="none" stroke="#ed7100" stroke-width="1.4" stroke-dasharray="6 4"/>
+<path d="M750,300 L818,242" fill="none" stroke="#8c4fff" stroke-width="2.1" marker-end="url(#a)"/>
+<path d="M750,310 L818,354" fill="none" stroke="#8c4fff" stroke-width="2.1" marker-end="url(#a)"/>
+<path d="M750,320 L818,466" fill="none" stroke="#8c4fff" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="536" y="387" width="152" height="17" fill="#fff" opacity="0.92"/>
+<text x="540" y="400" font-size="12.5" font-weight="600" fill="#8c4fff" text-anchor="start">③ 쉬고 있는 서버로 나눔</text>
+<path d="M426,430 L818,496" fill="none" stroke="#ed7100" stroke-width="1.7" stroke-dasharray="6 5" marker-end="url(#a)"/>
+<rect x="556" y="487" width="141" height="17" fill="#fff" opacity="0.92"/>
+<text x="560" y="500" font-size="12.5" font-weight="600" fill="#ed7100" text-anchor="start">④ 5초마다 숫자 가져감</text>
+<rect x="820" y="548" width="340" height="136" rx="8" fill="#fbeefc" stroke="#c925d1" stroke-width="1.4"/>
+<text x="832" y="570" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">RDS MySQL (사설)</text>
+<text x="832" y="590" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">모든 서버가 같은 DB 를 씀</text>
+<text x="832" y="608" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">같은 계좌 이체는 줄을 섬 (락)</text>
+<text x="832" y="626" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">DB 연결 모자람 → 기다리는 요청 ↑</text>
+<text x="832" y="644" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">→ 서버를 늘려도 덜 빨라짐 (병목)</text>
+<path d="M990,532 L990,546" fill="none" stroke="#c925d1" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="1260" y="130" width="296" height="576" rx="10" fill="#fdeef6" stroke="#e7157b" stroke-width="1.6"/>
+<rect x="1260" y="130" width="166" height="26" rx="10" fill="#e7157b"/>
+<rect x="1260" y="142" width="166" height="14" fill="#e7157b"/>
+<text x="1272" y="148" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">CloudWatch</text>
+<rect x="1276" y="172" width="264" height="110" rx="8" fill="#fff" stroke="#e7157b" stroke-width="1.4"/>
+<text x="1288" y="194" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">ALB 지표 (1분)</text>
+<text x="1288" y="214" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">RequestCountPerTarget</text>
+<text x="1288" y="232" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">= 서버 1대가 1분에 받은 요청</text>
+<text x="1288" y="250" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">2~3분 늦게 들어옴</text>
+<path d="M750,270 L780,270 L780,120 L1240,120 L1240,226 L1274,226" fill="none" stroke="#e7157b" stroke-width="1.7" stroke-dasharray="6 5" marker-end="url(#a)"/>
+<rect x="926" y="101" width="172" height="17" fill="#fff" opacity="0.92"/>
+<text x="930" y="114" font-size="12.5" font-weight="600" fill="#e7157b" text-anchor="start">ALB 가 숫자를 저절로 보냄</text>
+<rect x="1276" y="306" width="264" height="150" rx="8" fill="#fff" stroke="#cf222e" stroke-width="1.4"/>
+<text x="1288" y="328" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">늘리기 경보 AlarmHigh</text>
+<text x="1288" y="348" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">1대당 분당 600 넘음</text>
+<text x="1288" y="366" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">1분 값 3개 연속</text>
+<text x="1288" y="384" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">→ 대상 추적 정책</text>
+<text x="1288" y="402" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">   필요한 만큼 한 번에</text>
+<rect x="1276" y="476" width="264" height="150" rx="8" fill="#fff" stroke="#0969da" stroke-width="1.4"/>
+<text x="1288" y="498" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">줄이기 경보 quiet-scale-in</text>
+<text x="1288" y="518" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">1대당 분당 60 아래</text>
+<text x="1288" y="536" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">3분 연속 (요청 0 도 포함)</text>
+<text x="1288" y="554" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">→ 단계 조정 정책</text>
+<text x="1288" y="572" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">   최소(MinServers)로</text>
+<path d="M1408,282 L1408,304" fill="none" stroke="#e7157b" stroke-width="2.1" marker-end="url(#a)"/>
+<path d="M1408,456 L1408,474" fill="none" stroke="#e7157b" stroke-width="2.1" marker-end="url(#a)"/>
+<path d="M1276,380 L1182,380" fill="none" stroke="#cf222e" stroke-width="2.1" marker-end="url(#ar)"/>
+<rect x="1204" y="359" width="49" height="17" fill="#fff" opacity="0.92"/>
+<text x="1228" y="372" font-size="12.5" font-weight="600" fill="#cf222e" text-anchor="middle">⑥ 늘림</text>
+<path d="M1276,560 L1182,560" fill="none" stroke="#0969da" stroke-width="2.1" marker-end="url(#ab)"/>
+<rect x="1204" y="539" width="49" height="17" fill="#fff" opacity="0.92"/>
+<text x="1228" y="552" font-size="12.5" font-weight="600" fill="#0969da" text-anchor="middle">⑦ 줄임</text>
+<path d="M1276,650 L1240,650 L1240,716 L300,716 L300,690" fill="none" stroke="#e7157b" stroke-width="1.7" stroke-dasharray="6 5" marker-end="url(#a)"/>
+<rect x="636" y="698" width="182" height="17" fill="#fff" opacity="0.92"/>
+<text x="640" y="711" font-size="12.5" font-weight="600" fill="#e7157b" text-anchor="start">CloudWatch 데이터 소스</text>
+<text x="28" y="770" font-size="17" font-weight="700" fill="#1f2328" text-anchor="start">실제로 걸어 본 시간표 (서버 1대에서 시작, 50명 · 8분)</text>
+<line x1="80" y1="860" x2="1100" y2="860" stroke="#2b2f36" stroke-width="2"/>
+<rect x="80.0" y="844" width="510.0" height="12" rx="3" fill="#1a7f37" opacity="0.85"/>
+<text x="335.0" y="838" font-size="12.5" font-weight="700" fill="#1a7f37" text-anchor="middle">k6 부하 50명</text>
+<line x1="80.0" y1="860" x2="80.0" y2="866" stroke="#2b2f36"/>
+<text x="80.0" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">0분</text>
+<line x1="143.75" y1="860" x2="143.75" y2="866" stroke="#2b2f36"/>
+<text x="143.75" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">1분</text>
+<line x1="207.5" y1="860" x2="207.5" y2="866" stroke="#2b2f36"/>
+<text x="207.5" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">2분</text>
+<line x1="271.25" y1="860" x2="271.25" y2="866" stroke="#2b2f36"/>
+<text x="271.25" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">3분</text>
+<line x1="335.0" y1="860" x2="335.0" y2="866" stroke="#2b2f36"/>
+<text x="335.0" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">4분</text>
+<line x1="398.75" y1="860" x2="398.75" y2="866" stroke="#2b2f36"/>
+<text x="398.75" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">5분</text>
+<line x1="462.5" y1="860" x2="462.5" y2="866" stroke="#2b2f36"/>
+<text x="462.5" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">6분</text>
+<line x1="526.25" y1="860" x2="526.25" y2="866" stroke="#2b2f36"/>
+<text x="526.25" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">7분</text>
+<line x1="590.0" y1="860" x2="590.0" y2="866" stroke="#2b2f36"/>
+<text x="590.0" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">8분</text>
+<line x1="653.75" y1="860" x2="653.75" y2="866" stroke="#2b2f36"/>
+<text x="653.75" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">9분</text>
+<line x1="717.5" y1="860" x2="717.5" y2="866" stroke="#2b2f36"/>
+<text x="717.5" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">10분</text>
+<line x1="781.25" y1="860" x2="781.25" y2="866" stroke="#2b2f36"/>
+<text x="781.25" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">11분</text>
+<line x1="845.0" y1="860" x2="845.0" y2="866" stroke="#2b2f36"/>
+<text x="845.0" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">12분</text>
+<line x1="908.75" y1="860" x2="908.75" y2="866" stroke="#2b2f36"/>
+<text x="908.75" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">13분</text>
+<line x1="972.5" y1="860" x2="972.5" y2="866" stroke="#2b2f36"/>
+<text x="972.5" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">14분</text>
+<line x1="1036.25" y1="860" x2="1036.25" y2="866" stroke="#2b2f36"/>
+<text x="1036.25" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">15분</text>
+<line x1="1100.0" y1="860" x2="1100.0" y2="866" stroke="#2b2f36"/>
+<text x="1100.0" y="882" font-size="11.5" font-weight="400" fill="#3d4450" text-anchor="middle">16분</text>
+<path d="M80,954 L526,954 L526,902 L972,902 L972,954 L1100,954" fill="none" stroke="#ed7100" stroke-width="3"/>
+<text x="72" y="958" font-size="12" font-weight="700" fill="#ed7100" text-anchor="end">1대</text>
+<text x="72" y="906" font-size="12" font-weight="700" fill="#ed7100" text-anchor="end">3대</text>
+<line x1="398.75" y1="854" x2="398.75" y2="986" stroke="#cf222e" stroke-width="1.4" stroke-dasharray="3 4"/>
+<line x1="526.25" y1="854" x2="526.25" y2="986" stroke="#ed7100" stroke-width="1.4" stroke-dasharray="3 4"/>
+<line x1="590.0" y1="854" x2="590.0" y2="986" stroke="#1a7f37" stroke-width="1.4" stroke-dasharray="3 4"/>
+<line x1="908.75" y1="854" x2="908.75" y2="986" stroke="#0969da" stroke-width="1.4" stroke-dasharray="3 4"/>
+<line x1="972.5" y1="854" x2="972.5" y2="986" stroke="#ed7100" stroke-width="1.4" stroke-dasharray="3 4"/>
+<text x="398.75" y="818" font-size="12.5" font-weight="700" fill="#cf222e" text-anchor="middle">5분 AlarmHigh</text>
+<text x="526.25" y="802" font-size="12.5" font-weight="700" fill="#ed7100" text-anchor="middle">7분 서버 3대</text>
+<text x="590.0" y="818" font-size="12.5" font-weight="700" fill="#1a7f37" text-anchor="middle">8분 부하 끝</text>
+<text x="908.75" y="818" font-size="12.5" font-weight="700" fill="#0969da" text-anchor="middle">13분 줄이기 경보</text>
+<text x="972.5" y="802" font-size="12.5" font-weight="700" fill="#ed7100" text-anchor="middle">14분 1대로</text>
+<rect x="1150" y="900" width="426" height="140" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<text x="1162" y="922" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">이 단계에서 읽을 숫자</text>
+<text x="1162" y="942" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">k6: p(95) 응답 시간 · http_req_failed(실패율) · 초당 요청</text>
+<text x="1162" y="960" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">상황판: 서버 수가 늘 때 평균 응답 시간이 내려가나?</text>
+<text x="1162" y="978" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">         DB "기다리는 요청" 이 0 인가? (아니면 DB 병목)</text>
+<text x="1162" y="996" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">추가 서버 비용: 몇십 원 (5분 뒤 저절로 줄어듦)</text></svg>

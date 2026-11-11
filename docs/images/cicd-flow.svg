@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1010" width="1600" height="1010" font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR','WenQuanYi Zen Hei',sans-serif"><defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2b2f36"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7a8290"/></marker><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cf222e"/></marker><marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0969da"/></marker><marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a7f37"/></marker></defs><rect width="1600" height="1010" fill="#ffffff"/><text x="28" y="40" font-size="24" font-weight="700" fill="#1f2328" text-anchor="start">CI/CD: push 한 번에 테스트 → 이미지 → 서버 교체 · 화면 배포</text>
+<text x="28" y="64" font-size="13.5" font-weight="400" fill="#3d4450" text-anchor="start">개발자는 git push 만 합니다. 나머지는 GitHub Actions 가 같은 순서로 대신 합니다. AWS 키는 GitHub 어디에도 저장하지 않습니다 (OIDC 로 잠깐 빌린 역할).</text>
+<rect x="24" y="90" width="250" height="890" rx="10" fill="#fbfbfc" stroke="#24292f" stroke-width="1.6"/>
+<rect x="24" y="90" width="110" height="26" rx="10" fill="#24292f"/>
+<rect x="24" y="102" width="110" height="14" fill="#24292f"/>
+<text x="36" y="108" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">개발자 PC</text>
+<rect x="290" y="90" width="560" height="890" rx="10" fill="#f6f8fa" stroke="#24292f" stroke-width="1.6"/>
+<rect x="290" y="90" width="236" height="26" rx="10" fill="#24292f"/>
+<rect x="290" y="102" width="236" height="14" fill="#24292f"/>
+<text x="302" y="108" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">GitHub (내 fork)</text>
+<rect x="870" y="90" width="220" height="890" rx="10" fill="#eef4ff" stroke="#1d63ed" stroke-width="1.6"/>
+<rect x="870" y="90" width="166" height="26" rx="10" fill="#1d63ed"/>
+<rect x="870" y="102" width="166" height="14" fill="#1d63ed"/>
+<text x="882" y="108" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">Docker Hub</text>
+<rect x="1110" y="90" width="466" height="890" rx="10" fill="#fffaf3" stroke="#232f3e" stroke-width="1.6"/>
+<rect x="1110" y="90" width="110" height="26" rx="10" fill="#232f3e"/>
+<rect x="1110" y="102" width="110" height="14" fill="#232f3e"/>
+<text x="1122" y="108" font-size="13.5" font-weight="700" fill="#fff" text-anchor="start">AWS 서울</text>
+<line x1="24" y1="676" x2="1576" y2="676" stroke="#7a8290" stroke-width="1.2" stroke-dasharray="4 6"/>
+<text x="1570" y="128" font-size="14" font-weight="700" fill="#24292f" text-anchor="end">서버 (backend.yml)</text>
+<text x="1570" y="704" font-size="14" font-weight="700" fill="#24292f" text-anchor="end">화면 (frontend.yml)</text>
+<rect x="40" y="140" width="218" height="96" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="56" cy="157" r="11" fill="#2b2f36"/>
+<text x="56" y="161.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+<text x="72" y="162" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">코드 고치기 · push</text>
+<text x="52" y="182" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">src/… 수정</text>
+<text x="52" y="200" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">git push origin main</text>
+<rect x="40" y="720" width="218" height="96" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="56" cy="737" r="11" fill="#2b2f36"/>
+<text x="56" y="741.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">A</text>
+<text x="72" y="742" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">화면 고치기 · push</text>
+<text x="52" y="762" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">frontend/** 수정 후 push</text>
+<text x="52" y="780" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">(처음 한 번은 Run workflow)</text>
+<rect x="306" y="140" width="528" height="60" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<text x="318" y="162" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">저장소 main  →  .github/workflows/backend.yml 실행</text>
+<path d="M258,170 L304,170" fill="none" stroke="#2b2f36" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="306" y="214" width="528" height="444" rx="10" fill="#ffffff" stroke="#24292f" stroke-width="1.4"/>
+<text x="318" y="238" font-size="13" font-weight="700" fill="#24292f" text-anchor="start">Actions runner (GitHub 가 빌려주는 임시 컴퓨터)</text>
+<rect x="322" y="254" width="496" height="78" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="338" cy="271" r="11" fill="#2b2f36"/>
+<text x="338" y="275.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+<text x="354" y="276" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">test</text>
+<text x="334" y="296" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">./gradlew test</text>
+<text x="334" y="314" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">깨지면 빨간 X → 아래 잡은 실행하지 않음</text>
+<text x="806" y="276" font-size="13" font-weight="700" fill="#cf222e" text-anchor="end">✗ 멈춤</text>
+<path d="M570,332 L570,350" fill="none" stroke="#2b2f36" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="322" y="352" width="496" height="78" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="338" cy="369" r="11" fill="#2b2f36"/>
+<text x="338" y="373.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+<text x="354" y="374" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">build  (needs: test)</text>
+<text x="334" y="394" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">docker build --platform linux/amd64</text>
+<text x="334" y="412" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">→ wonbank:&lt;커밋 SHA&gt; 로 Docker Hub 에 올림</text>
+<path d="M570,430 L570,448" fill="none" stroke="#2b2f36" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="322" y="450" width="496" height="196" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="338" cy="467" r="11" fill="#2b2f36"/>
+<text x="338" y="471.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+<text x="354" y="472" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">deploy  (needs: build · 한 번에 하나씩)</text>
+<text x="340" y="494" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">① :prod 이름표를 이번 SHA 이미지로 옮겨 붙임</text>
+<text x="340" y="516" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">② OIDC 토큰으로 AWS 배포 역할 받기</text>
+<text x="340" y="538" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">   (내 fork 의 main 에서 온 실행만 허용)</text>
+<text x="340" y="560" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">③ 앞 교체가 아직이면 30초마다 확인하며 기다림</text>
+<text x="340" y="582" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">④ 인스턴스 새로 고침 시작</text>
+<text x="340" y="604" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">    → 새 서버 먼저, healthy 되면 옛 서버 끔</text>
+<rect x="886" y="300" width="188" height="150" rx="8" fill="#fff" stroke="#1d63ed" stroke-width="1.4"/>
+<text x="898" y="322" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">&lt;아이디&gt;/wonbank</text>
+<text x="898" y="342" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">이름표</text>
+<text x="898" y="360" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">:&lt;커밋 SHA&gt; 매번 새로</text>
+<text x="898" y="378" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">:prod ← 서버가 받음</text>
+<path d="M818,392 L884,392" fill="none" stroke="#1d63ed" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="822" y="371" width="49" height="17" fill="#fff" opacity="0.92"/>
+<text x="826" y="384" font-size="12.5" font-weight="600" fill="#1d63ed" text-anchor="start">③ 올림</text>
+<path d="M818,476 L980,476 L980,452" fill="none" stroke="#1d63ed" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="822" y="457" width="121" height="17" fill="#fff" opacity="0.92"/>
+<text x="826" y="470" font-size="12.5" font-weight="600" fill="#1d63ed" text-anchor="start">① :prod 이름표</text>
+<rect x="1170" y="140" width="390" height="92" rx="8" fill="#fff1f3" stroke="#dd344c" stroke-width="1.4"/>
+<text x="1182" y="162" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">IAM: OIDC 공급자 + 배포 역할</text>
+<text x="1182" y="182" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">GitHub 토큰을 믿고 역할을 빌려줌</text>
+<text x="1182" y="200" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">할 수 있는 일: 서버 교체 · S3 · 무효화</text>
+<path d="M818,540 L1140,540 L1140,190 L1168,190" fill="none" stroke="#dd344c" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="822" y="519" width="152" height="17" fill="#fff" opacity="0.92"/>
+<text x="826" y="532" font-size="12.5" font-weight="600" fill="#dd344c" text-anchor="start">② OIDC 로 역할 받기</text>
+<rect x="822" y="536" width="203" height="17" fill="#fff" opacity="0.92"/>
+<text x="826" y="549" font-size="12.5" font-weight="600" fill="#dd344c" text-anchor="start">   (1시간짜리 임시 자격 증명)</text>
+<rect x="1170" y="262" width="390" height="380" rx="10" fill="#fff4e8" stroke="#ed7100" stroke-width="1.6"/>
+<text x="1184" y="286" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">Auto Scaling 그룹 (사설 서브넷)</text>
+<rect x="1184" y="300" width="176" height="92" rx="8" fill="#fff" stroke="#7a8290" stroke-width="1.4"/>
+<text x="1196" y="322" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">옛 서버</text>
+<text x="1196" y="342" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">옛 :prod 로 실행 중</text>
+<text x="1196" y="360" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">새 서버 정상 → 종료</text>
+<rect x="1370" y="300" width="176" height="92" rx="8" fill="#fff" stroke="#ed7100" stroke-width="1.4"/>
+<text x="1382" y="322" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">새 서버</text>
+<text x="1382" y="342" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">켜지며 pull :prod</text>
+<text x="1382" y="360" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">→ 새 코드로 실행</text>
+<path d="M818,610 L1168,610" fill="none" stroke="#2b2f36" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="822" y="589" width="162" height="17" fill="#fff" opacity="0.92"/>
+<text x="826" y="602" font-size="12.5" font-weight="600" fill="#2b2f36" text-anchor="start">④ 인스턴스 새로 고침 시작</text>
+<path d="M1074,420 L1168,420" fill="none" stroke="#7a8290" stroke-width="1.7" stroke-dasharray="6 5" marker-end="url(#ag)"/>
+<rect x="1074" y="427" width="110" height="17" fill="#fff" opacity="0.92"/>
+<text x="1078" y="440" font-size="12.5" font-weight="600" fill="#7a8290" text-anchor="start">새 서버가 받아 감</text>
+<rect x="1184" y="410" width="362" height="92" rx="8" fill="#fff" stroke="#8c4fff" stroke-width="1.4"/>
+<text x="1196" y="432" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">ALB 상태 검사</text>
+<text x="1196" y="452" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">/actuator/health 를 15초마다</text>
+<text x="1196" y="470" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">2번 연속 성공 = healthy → 요청 보냄</text>
+<path d="M1458,410 L1458,394" fill="none" stroke="#8c4fff" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="1184" y="520" width="362" height="108" rx="8" fill="#fff" stroke="#1a7f37" stroke-width="1.4"/>
+<text x="1196" y="542" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">끊김 없이 교체</text>
+<text x="1196" y="562" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">최소 정상 100% · 최대 200%</text>
+<text x="1196" y="580" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">새 서버 먼저 → 정상이면 옛 서버 종료</text>
+<text x="1196" y="598" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">새 서버가 실패하면 옛 서버가 계속 응답</text>
+<rect x="306" y="720" width="528" height="236" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<circle cx="322" cy="737" r="11" fill="#2b2f36"/>
+<text x="322" y="741.5" font-size="12.5" font-weight="700" fill="#fff" text-anchor="middle">B</text>
+<text x="338" y="742" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">frontend.yml</text>
+<text x="324" y="764" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">npm ci → npm run build  (VITE_API_BASE=/api)</text>
+<text x="324" y="788" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">OIDC 로 같은 배포 역할 받기</text>
+<text x="324" y="812" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">aws s3 sync dist s3://&lt;버킷&gt; --delete</text>
+<text x="324" y="836" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">aws cloudfront create-invalidation --paths "/*"</text>
+<text x="324" y="860" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start"></text>
+<text x="324" y="884" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">backend 는 돌지 않음 (화면 파일만 바뀌었으므로)</text>
+<path d="M258,768 L304,768" fill="none" stroke="#2b2f36" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="1170" y="720" width="188" height="110" rx="8" fill="#f3f9e8" stroke="#7aa116" stroke-width="1.4"/>
+<text x="1182" y="742" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">S3 버킷 (잠김)</text>
+<text x="1182" y="762" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">wonit-a-&lt;이름&gt;-web</text>
+<text x="1182" y="780" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">index.html · assets/</text>
+<text x="1182" y="798" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">CloudFront(OAC)만 읽음</text>
+<rect x="1372" y="720" width="188" height="110" rx="8" fill="#f6f0ff" stroke="#8c4fff" stroke-width="1.4"/>
+<text x="1384" y="742" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">CloudFront</text>
+<text x="1384" y="762" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">무효화: 옛 복사본 버림</text>
+<text x="1384" y="780" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">/api/* 는 ALB 로</text>
+<text x="1384" y="798" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">나머지는 S3 에서</text>
+<path d="M834,790 L1168,790" fill="none" stroke="#7aa116" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="856" y="769" width="172" height="17" fill="#fff" opacity="0.92"/>
+<text x="860" y="782" font-size="12.5" font-weight="600" fill="#7aa116" text-anchor="start">C  파일 올리기 (sync)</text>
+<path d="M834,862 L1466,862 L1466,832" fill="none" stroke="#8c4fff" stroke-width="2.1" marker-end="url(#a)"/>
+<rect x="856" y="839" width="100" height="17" fill="#fff" opacity="0.92"/>
+<text x="860" y="852" font-size="12.5" font-weight="600" fill="#8c4fff" text-anchor="start">D  무효화 /*</text>
+<path d="M1358,775 L1370,775" fill="none" stroke="#7a8290" stroke-width="1.7" stroke-dasharray="6 5" marker-end="url(#ag)"/>
+<rect x="1170" y="880" width="390" height="78" rx="8" fill="#fff" stroke="#2b2f36" stroke-width="1.4"/>
+<text x="1182" y="902" font-size="14" font-weight="700" fill="#1f2328" text-anchor="start">내 사이트 https://&lt;이름&gt;.woncare.shop</text>
+<text x="1182" y="922" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">새로고침(Ctrl+Shift+R) 하면 바뀐 화면</text>
+<rect x="40" y="830" width="218" height="146" rx="8" fill="#fff" stroke="#7a8290" stroke-width="1.4"/>
+<text x="52" y="852" font-size="13" font-weight="700" fill="#1f2328" text-anchor="start">Settings → Actions</text>
+<text x="52" y="872" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">변수: DOCKERHUB_USERNAME</text>
+<text x="52" y="890" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">      ASG_NAME · WEB_BUCKET</text>
+<text x="52" y="908" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">      AWS_DEPLOY_ROLE_ARN</text>
+<text x="52" y="926" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">      CF_DISTRIBUTION_ID</text>
+<text x="52" y="944" font-size="12.5" font-weight="400" fill="#3d4450" text-anchor="start">시크릿: DOCKERHUB_TOKEN</text></svg>

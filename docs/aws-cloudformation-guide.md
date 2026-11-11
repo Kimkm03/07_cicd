@@ -347,6 +347,10 @@ flowchart LR
   RUN --> TAB["Actions 탭<br/>초록 성공 · 빨강 실패"]
 ```
 
+![CI/CD 흐름](images/cicd-flow.png)
+
+▲ 이 단계부터 8단계까지 만드는 흐름 전체. 서버는 ①~④(test → build → deploy → 인스턴스 새로 고침), 화면은 A~D(빌드 → S3 → 무효화). AWS 키는 GitHub 에 없고, deploy 가 OIDC 로 역할을 잠깐 빌립니다.
+
 1. **GitHub → `WONIT-A/07_cicd` → Fork → Create fork** (Actions 는 내 저장소에서 돌기 때문입니다). workflow 두 개(`.github/workflows/backend.yml` · `frontend.yml`)는 이미 들어 있습니다.
 
    ![WONIT-A/07_cicd → Fork: Owner 는 내 아이디, 이름은 그대로 → Create fork](images/aws/g10-gh-fork.png)
@@ -778,6 +782,10 @@ flowchart LR
 > 실제로 걸어 보면: 부하 시작 후 **약 5분** 뒤 경보가 울립니다 (ALB 지표가 CloudWatch 에 2~3분 늦게 들어오고, 1분 값 3개가 연달아 넘어야 함). 대상 추적은 한 대씩이 아니라 **필요한 만큼 한 번에** 늘립니다 (예: 2 → 5). 새 서버가 뜨기까지 경보 5분 + 부팅 2~3분이 걸리므로, 늘어난 서버가 부하를 나눠 받는 모습까지 보려면 부하를 **8분**(`HOLD=8m`) 겁니다.
 >
 > **실측 시간표** (서버 1대에서 시작, 50명): 0분 부하 시작 → 5분 경보 → 7분 서버 3대 → 8분 부하 끝 → 13분 빠른 축소 경보 → 14분 1대. 추가 서버 비용은 몇십 원입니다.
+
+![부하 테스트와 자동 확장](images/loadtest-flow.png)
+
+▲ k6 → ALB → 앱 서버 → RDS 로 부하가 흐르고, 숫자는 두 갈래로 모입니다: 서버 안쪽(Prometheus → Grafana), 서버 바깥(ALB → CloudWatch → 경보 → Auto Scaling). 아래는 실제로 걸어 본 시간표입니다.
 
 1. **내 PC (Git Bash)** → `~/.ssh` 에서 출력 `MonitoringSsh` 명령을 그대로 붙여 넣어 모니터링 EC2 에 들어갑니다 (Bastion 을 거칩니다).
    > 💡 학원 · 회사 망에서 22번이 막혀 있으면 **CloudShell**(콘솔 왼쪽 아래 `CloudShell`, 리전 서울)에서 들어갑니다. 키 파일 없이 EC2 Instance Connect 로 Bastion · 모니터링 EC2 에 60초짜리 임시 키를 넣고 Bastion 을 거쳐 접속합니다.

@@ -643,7 +643,7 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
    ![deploy 의 AWS 두 단계(역할 받기 · 인스턴스 새로 고침 시작)까지 초록](images/aws/g31-actions-deploy-green.png)
    ▲ deploy 의 AWS 두 단계(역할 받기 · 인스턴스 새로 고침 시작)까지 초록
 
-4. **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침** 탭에서 진행률을 봅니다. 새 서버가 먼저 뜨고 healthy 가 된 뒤 옛 서버가 내려갑니다 (끊김 없이 교체).
+4. **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침** 탭에서 진행률을 봅니다. (연달아 push 하면 뒤 실행의 deploy 가 "앞 교체가 아직 InProgress → 30초 뒤 다시 확인" 을 찍으며 기다렸다가 교체합니다.) 새 서버가 먼저 뜨고 healthy 가 된 뒤 옛 서버가 내려갑니다 (끊김 없이 교체).
 
    ![Auto Scaling 그룹 → 인스턴스 새로 고침: 진행률과 상태](images/aws/g32-asg-instance-refresh.png)
    ▲ Auto Scaling 그룹 → **인스턴스 새로 고침**: 진행률과 상태
@@ -938,6 +938,7 @@ flowchart LR
 | Grafana `up` 이 비어 있음 | 서버가 아직 안 뜸 | 대상 그룹 healthy 확인 후 잠시 뒤 |
 | SSH `Connection timed out` | `MyIpCidr` 를 좁혀 둠 · Bastion 을 안 거침 | `MyIpCidr` 확인, 출력의 명령 그대로 사용 |
 | 스택 삭제 `DELETE_FAILED` | S3 가 비어 있지 않음 | 버킷 비우고 다시 삭제 |
+| 로그인 `403 Invalid CORS request` 인데 코드는 고쳤음 | 고친 이미지는 올라갔지만 서버 교체가 안 됨 (예전 workflow 는 앞 교체가 진행 중이면 `InstanceRefreshInProgress` 로 실패) | 지금 workflow 는 앞 교체가 끝날 때까지 기다렸다가 교체합니다. 예전 fork 면 backend 실행에서 **Re-run failed jobs** |
 
 ## 6. 용어 사전
 

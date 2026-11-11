@@ -1,0 +1,68 @@
+우리WON 뱅킹 AWS 실습 · 내 값 메모장
+(실습하면서 나오는 값을 "=" 오른쪽에 적습니다. 괄호는 어디서 보는지 / 어디에 쓰는지)
+※ 비밀번호 · 토큰 · .pem 내용은 적지 않습니다.
+
+[준비]
+1. 내 이름(영문 소문자) =
+2. 리전 = 서울 ap-northeast-2 (인증서 스택만 버지니아 us-east-1)
+
+[1단계 키 페어]
+3. 키 페어 이름 = wonit-a-<이름>-key
+4. .pem 파일 위치 = ~/.ssh/wonit-a-<이름>-key.pem
+
+[2단계 도메인]
+5. 도메인 주소 = <이름>.woncare.shop
+6. 호스팅 영역 ID = Z            (Route 53 → 호스팅 영역 세부 정보 / 3 · 5단계 HostedZoneId)
+7. NS 1 = ns-
+8. NS 2 = ns-
+9. NS 3 = ns-
+10. NS 4 = ns-                   (발급 사이트에 등록)
+
+[3단계 인증서 스택 · 버지니아]
+11. 인증서 스택 이름 = wonit-a-<이름>-cert
+12. CertificateArn = arn:aws:acm:us-east-1:      (출력 탭 / 5단계 CertificateArn)
+
+[4단계 GitHub · Docker Hub]
+13. GitHub 아이디 =
+14. 내 fork 주소 = https://github.com/<GitHub 아이디>/07_cicd
+15. Docker Hub 아이디 =               (GitHub 변수 DOCKERHUB_USERNAME)
+16. Docker 이미지 = <Docker Hub 아이디>/wonbank:prod   (5단계 DockerImage)
+    ※ Docker Hub 토큰은 GitHub 시크릿 DOCKERHUB_TOKEN 에만 넣고 여기엔 적지 않음
+
+[5단계 서울 스택]
+17. 서울 스택 이름 = wonit-a-<이름>-stack
+18. GitHubRepo = <GitHub 아이디>/07_cicd
+19. MyIpCidr = 0.0.0.0/0 (기본값)
+20. 스택 생성 시작 시각 =
+21. CREATE_COMPLETE 시각 =
+
+[6단계 서울 스택 출력 · 출력 탭]
+22. SiteUrl = https://<이름>.woncare.shop
+23. AlbDnsName =                              (10단계 k6 BASE_URL)
+24. AsgName = wonit-a-<이름>-prd-asg          (GitHub 변수 ASG_NAME)
+25. DeployRoleArn = arn:aws:iam::             (GitHub 변수 AWS_DEPLOY_ROLE_ARN)
+26. WebBucketName = wonit-a-<이름>-web        (GitHub 변수 WEB_BUCKET)
+27. CloudFrontDistributionId = E               (GitHub 변수 CF_DISTRIBUTION_ID)
+28. GrafanaUrl = http://<모니터링 IP>:3000     (9단계)
+29. BastionIp =                                (10단계 SSH)
+30. 모니터링 EC2 사설 IP = 10.                  (출력 MonitoringSsh 안 / 10단계 SSH)
+31. RdsEndpoint =
+
+[9단계 Grafana]
+32. Prometheus 데이터 소스 URL = http://prometheus:9090
+33. CloudWatch 데이터 소스 = AWS SDK Default · ap-northeast-2
+
+[10단계 부하 테스트]
+34. 10명 · 20초  p(95) 응답 시간 =        실패율 =        초당 요청 =
+35. 50명 · 8분   p(95) 응답 시간 =        실패율 =        초당 요청 =
+36. 부하 시작 시각 =
+37. AlarmHigh 경보 시각 =                (시작 후 약 5분)
+38. 늘어난 서버 수 · 시각 =
+39. 부하 끝난 시각 =
+40. quiet-scale-in 경보 · 줄어든 시각 =   (끝나고 약 5분)
+41. 내가 본 병목 =
+
+[12단계 정리]
+42. S3 비우기 · 서울 스택 삭제 완료 시각 =
+43. 인증서 스택 · 호스팅 영역 · 키 페어 삭제 =
+44. 태그 편집기(Owner = <이름>) 0건 확인 =

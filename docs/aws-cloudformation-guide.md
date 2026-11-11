@@ -450,7 +450,7 @@ flowchart LR
    | `KeyName` | `wonit-a-<이름>-key` | 목록에서 고름 |
    | `MyIpCidr` | 기본값 `0.0.0.0/0` 그대로 | Bastion SSH · Grafana 를 누구에게 열지. 수업은 전체 공개 |
    | `InstanceType` | 기본값 `t3.small` | 앱 · 모니터링 서버 크기 |
-   | `GitHubRepo` | `<GitHub 아이디>/07_cicd` | 배포 역할이 이 저장소의 main 만 받음 |
+   | `GitHubRepo` | `<GitHub 아이디>/07_cicd` | 배포 역할이 이 저장소의 main 만 받음. **주소 전체(`https://github.com/…`)나 `.git` 을 붙이면 거부됨** |
    | `DockerImage` | `<도커허브ID>/wonbank:prod` | 4단계 결과 |
    | `JwtSecret` | 기본값 `replace-with-a-long-random-secret-key` | 그대로 (로그인 토큰 서명용 비밀키, 화면에서 가려짐) |
    | `GeminiApiKey` | 기본값 `no-key` | 키가 있으면 넣음. 없으면 AI 는 대체 답변 |
@@ -946,6 +946,7 @@ flowchart LR
 | Grafana 가 안 열림 | 모니터링 EC2 가 켜진 지 5분이 안 됨 · `MyIpCidr` 를 좁혀 둠 | 잠시 뒤 다시, `MyIpCidr` 확인 |
 | Grafana `up` 이 비어 있음 | 서버가 아직 안 뜸 | 대상 그룹 healthy 확인 후 잠시 뒤 |
 | SSH `Connection timed out` | `MyIpCidr` 를 좁혀 둠 · Bastion 을 안 거침 | `MyIpCidr` 확인, 출력의 명령 그대로 사용 |
+| `Parameter GitHubRepo failed to satisfy constraint` | fork 주소를 통째로 붙임 · `.git` 붙음 | `아이디/07_cicd` 두 부분만 |
 | 스택 삭제 `DELETE_FAILED` | S3 가 비어 있지 않음 | 버킷 비우고 다시 삭제 |
 | 로그인 `403 Invalid CORS request` 인데 코드는 고쳤음 | 고친 이미지는 올라갔지만 서버 교체가 안 됨 (예전 workflow 는 앞 교체가 진행 중이면 `InstanceRefreshInProgress` 로 실패) | 지금 workflow 는 앞 교체가 끝날 때까지 기다렸다가 교체합니다. 예전 fork 면 backend 실행에서 **Re-run failed jobs** |
 

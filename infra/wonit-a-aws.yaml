@@ -51,7 +51,7 @@ Parameters:
   DockerImage:
     Type: String
     AllowedPattern: '^[a-z0-9._-]+/[a-z0-9._-]+:[A-Za-z0-9._-]+$'
-    ConstraintDescription: 'e.g. mydockerid/wonbank:prod'
+    ConstraintDescription: 'lowercase <dockerhub id>/wonbank:prod, e.g. mydockerid/wonbank:prod (no https://, no docker.io/)'
     Description: 'Image the app servers run (e.g. mydockerid/wonbank:prod). GitHub Actions moves the prod tag'
   JwtSecret:                             # 수업용 고정값이 기본값으로 들어 있다 (실무에서는 사람마다 다른 긴 값을 쓴다)
     Type: String
@@ -139,9 +139,9 @@ Parameters:
   GitHubRepo:
     Type: String
     AllowedPattern: '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'
-    ConstraintDescription: 'owner/repo, e.g. kimyeonji/07_cicd'
+    ConstraintDescription: 'only <GitHub id>/<repo>, e.g. kimyeonji/07_cicd (no https://github.com/ and no .git)'
     Description: 'My fork (owner/repo). Creates the GitHub Actions deploy role for its main branch (the account OIDC provider must already exist)'
-  GrafanaPassword:                       # 수업용 공통 비밀번호가 기본값으로 들어 있다 (Grafana 3000 은 내 IP 에게만 열린다)
+  GrafanaPassword:                       # 수업용 공통 비밀번호가 기본값으로 들어 있다 (Grafana 3000 은 MyIpCidr 에게 열린다)
     Type: String
     NoEcho: true
     Default: 'Wooriwon1!'

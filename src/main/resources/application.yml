@@ -1,0 +1,122 @@
+# 이 파일은 들여쓰기(스페이스 2칸)가 곧 문법입니다. 탭을 쓰거나 칸이 어긋나면 앱이 뜨지 않습니다.
+# ${이름:기본값} = 환경변수가 있으면 그 값, 없으면 콜론 뒤의 기본값.
+# 원래는 비밀번호를 이 파일에 직접 쓰지 않습니다. 깃에 올라가는 순간 모두에게 공개되기 때문입니다.
+spring:
+  application:
+    name: wonit
+  datasource:
+    #   h2 database
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+#  # MySQL Database
+#      url: jdbc:mysql://${host}:3306/${database}?useSSL=false&serverTimezone=Asia/Seoul
+#      username: ${username}
+#      password: ${password}
+#      driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      # ddl-auto 옵션: create, create-drop, update, validate, none
+      # - create: 테이블을 새로 만듭니다. 기존 데이터가 삭제될 수 있습니다.
+      # - create-drop: 테이블을 만들고 애플리케이션 종료 시 제거합니다.
+      # - update: 기존 테이블 구조를 엔티티에 맞춰 변경하려고 시도합니다.
+      # - validate: 구조가 맞는지만 검사합니다.
+      # - none: 스키마 관련 자동 처리를 하지 않습니다.
+      ddl-auto: create
+      database-platform: org.hibernate.dialect.H2Dialect
+
+    show-sql: true            # 실행되는 SQL 을 콘솔에 찍는다
+    properties:
+      hibernate:
+        format_sql: true      # SQL 을 줄바꿈해서 사람이 읽기 좋게 출력한다
+
+    # Hibernate가 테이블을 생성한 후 data.sql 실행
+    defer-datasource-initialization: true
+  h2:
+    console:
+      enabled: true
+  # 🤖 Spring AI: AI 프로필(gemini · openrouter · openai)을 켜지 않아도 앱은 떠야 한다 → 키 기본값은 가짜 값 no-key
+  #    진짜 키는 프로필 파일이 환경변수에서 읽어 덮어쓴다. 🚨 이 파일에 진짜 키를 적지 않는다
+#  ai:
+#    openai:
+#      api-key: ${AI_API_KEY:no-key}
+#      max-retries: 0          # 실패하면 다시 시도하지 않고 바로 "기타" 로 대체한다
+# Gemini 의 "OpenAI 호환" 주소를 쓴다.  실행: GEMINI_API_KEY=... ./gradlew bootRun --args='--spring.profiles.active=gemini'
+  ai:
+    openai:
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      api-key: ${GEMINI_API_KEY}              # 🚨 키는 환경변수에서만 읽는다
+      chat:
+        model:  ${AI_MODEL:gemini-3.5-flash-lite}  # 수업 당일 사이트에서 저렴한 모델 이름 확인
+      embedding:
+        options:
+          model: ${AI_EMBEDDING_MODEL:gemini-embedding-001}   # (선택) RAG 용 임베딩 모델. 이름은 수업 당일 확인
+    # 📚 (선택) RAG 임베딩(글 → 숫자 벡터)은 Gemini 전용 연결로 만든다 (키는 위와 같은 GEMINI_API_KEY)
+    #    🚨 위의 "OpenAI 호환" 주소로 임베딩하면 응답에 index 가 빠져 있어서 Spring AI 2.0.1 이 "`index` is not set" 으로 실패한다
+    google:
+      genai:
+        embedding:
+          api-key: ${GEMINI_API_KEY}
+          text:
+            options:
+              model: ${AI_EMBEDDING_MODEL:gemini-embedding-001}
+
+# 한글이 들어가면 깨지는 경우들이 종종 있습니다. 개발시 처음에 꼭 확인 필요
+# .env 안에 추가한 title 환경변수를 가져와서 사용해보십시오.
+# ${변수명:기본값} = 환경변수가 있으면 그 값, 없으면 콜론 뒤의 기본값.
+app:
+  title: ${title:스프링부트 어플리케이션 3}
+
+logging:
+  level:
+    root: INFO    # 스프링부트이 모든 환경
+    com.example.wonit: DEBUG                   # 우리 패키지만 자세히
+    org.hibernate.SQL: DEBUG                   # 실행되는 SQL (show-sql 대신 이것을 권장: 로그 형식·레벨을 따름)
+    org.hibernate.orm.jdbc.bind: TRACE         # SQL 의 ? 자리에 실제로 들어간 값
+    org.springframework.orm.jpa.JpaTransactionManager: DEBUG   # Creating new transaction → commit / rollback 이 찍힌다
+    org:
+      springframework:
+        ai:
+          chat:
+            client:
+              advisor:
+                SimpleLoggerAdvisor: DEBUG #  ChatClient 요청과 응답을 로그로 남김
+#  file:
+#    name: logs/wonit.log
+
+server:
+  port: 8080
+
+# 🔐 JWT: 로그인하면 이 비밀키로 서명한 토큰(출입증)을 준다. 32바이트(영문 32자) 이상이어야 한다
+jwt:
+  secret: ${JWT_SECRET:DEMO-ONLY-change-me-0123456789-0123456789}   # 학습용 기본값. 🚨 운영은 반드시 환경변수 JWT_SECRET 으로 덮어쓴다
+  expiration-minutes: 300      # 토큰은 한 번 발급하면 취소하기 어렵다 → 만료를 짧게
+
+# 🔎 요청 추적: 요청마다 traceId(요청 전체 번호)를 만들어 로그 줄마다 찍어 준다
+management:
+  tracing:
+    sampling:
+      probability: 1.0        # 요청 100% 추적 (수업용. 운영은 0.1 처럼 일부만)
+  otlp:
+    metrics:
+      export:
+        enabled: false        # 받아 줄 수집기(OTel Collector)가 없으면 1분마다 전송 실패 경고가 찍힌다
+  # 🩺 Actuator: 서버의 건강검진 창구. 🚨 필요한 주소만 연다 (include: "*" 는 설정 값 · 메모리 덤프까지 열린다)
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized   # 권한 있는 사람에게만 상세(DB 상태 등)를 보여 준다
+      roles: ADMIN                    # 🚨 이 줄이 없으면 로그인한 손님 누구나 상세를 본다 (우리 토큰에는 ADMIN 이 없다)
+
+# 📚 (선택) RAG 임베딩을 누가 만들지 고른다 (채팅 AI 는 위 설정 그대로, 임베딩만 해당)
+#   Gemini 키 → Gemini 전용 연결 (지금 설정)
+spring.ai.model.embedding: google-genai
+spring.ai.model.embedding.text: google-genai
+#   OpenAI 키(openai · openrouter 프로필) → 위 두 줄을 주석으로 막고 아래 두 줄의 주석을 푼다
+#spring.ai.model.embedding: openai
+#spring.ai.model.embedding.text: openai

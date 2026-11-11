@@ -1,0 +1,844 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'WONIT-A WON Banking - one stack builds everything (Seoul ap-northeast-2 only): VPC, NAT, bastion, RDS, ALB, Auto Scaling group, S3 + CloudFront + my domain HTTPS, monitoring EC2 (Prometheus + Grafana), GitHub deploy role'
+
+# 우리WON 뱅킹 AWS 전체를 스택 하나로 짓는다. 스택 이름 wonit-a-<이름>-stack (서울)
+#   먼저 할 것 3가지 (docs/day5-aws.md 5교시 · 6교시):
+#     ① 서울에 키 페어 wonit-a-<이름>-key  ② 버지니아(us-east-1)에 인증서 스택 wonit-a-<이름>-cert (infra/wonit-a-cert.yaml)
+#     ③ GitHub Actions 로 이미지 <도커허브ID>/wonbank:prod 를 한 번 만들어 둔다 (없으면 앱 서버가 계속 unhealthy)
+#   만들 때 "IAM 리소스를 만들 수 있음" 확인란에 체크 (역할 2개를 만든다). 다 되기까지 15~20분 (RDS · CloudFront 가 오래 걸린다)
+#   🚨 DB 암호 · JWT 비밀키 · Grafana 비밀번호는 UserData 에 들어간다 → EC2 콘솔에서 UserData 를 열면 보인다 (수업용 선택)
+# 나중에 바꿀 때: 스택 "업데이트" → 기존 템플릿 사용 → 값만 바꾼다 (예: Day 7 DbPoolSize · RequestsPerTargetPerMinute)
+# 지울 때: S3 버킷 wonit-a-<이름>-web 을 먼저 비운다 → 이 스택 삭제 → 버지니아의 인증서 스택 삭제
+# 콘솔에 보이는 글자(설명 · 출력)는 한글이 깨지지 않게 영어로 적는다. 한글은 # 주석에만
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: '1. Basic' }
+        Parameters: [YourName, KeyName, MyIpCidr, InstanceType, GitHubRepo]
+      - Label: { default: '2. App (launch template)' }
+        Parameters: [DockerImage, JwtSecret, GeminiApiKey, DbPoolSize]
+      - Label: { default: '3. Database (RDS MySQL)' }
+        Parameters: [DbUsername, DbPassword, DbInstanceClass]
+      - Label: { default: '4. Auto Scaling' }
+        Parameters: [DesiredCapacity, RequestsPerTargetPerMinute]
+      - Label: { default: '5. Web: S3 + CloudFront + my domain HTTPS' }
+        Parameters: [DomainName, HostedZoneId, CertificateArn, CloudFrontPrefixListId]
+      - Label: { default: '6. Monitoring EC2 (Prometheus + Grafana)' }
+        Parameters: [GrafanaPassword]
+
+Parameters:
+  YourName:
+    Type: String
+    Default: 'myname'
+    AllowedPattern: '^[a-z0-9][a-z0-9-]{1,15}$'
+    ConstraintDescription: 'lowercase letters, digits, hyphen (2-16 chars; ALB and target group names are limited to 32 chars)'
+    Description: 'My name in lowercase, 16 chars max (e.g. kimyeonji). Resources are named wonit-a-<name>-...'
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: 'Key pair for SSH (create it in Seoul first: wonit-a-<name>-key)'
+  MyIpCidr:
+    Type: String
+    AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$'
+    ConstraintDescription: 'e.g. 203.0.113.10/32'
+    Description: 'My public IP + /32 (curl -s https://checkip.amazonaws.com). Opens bastion SSH 22 and Grafana 3000 to this IP only'
+  InstanceType:
+    Type: String
+    Default: 't3.small'
+    AllowedValues: ['t3.small', 't3.medium']
+    Description: 'Size of app servers and the monitoring server'
+  DockerImage:
+    Type: String
+    AllowedPattern: '^[a-z0-9._-]+/[a-z0-9._-]+:[A-Za-z0-9._-]+$'
+    ConstraintDescription: 'e.g. mydockerid/wonbank:prod'
+    Description: 'Image the app servers run (e.g. mydockerid/wonbank:prod). GitHub Actions moves the prod tag'
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    AllowedPattern: '^[A-Za-z0-9!#%^*_+=-]+$'
+    ConstraintDescription: '32+ chars: letters, digits, ! # % ^ * _ + = -'
+    Description: 'JWT signing key (32+ chars). Same on every app server'
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+    Default: 'no-key'
+    MinLength: 1
+    Description: 'Gemini API key. Leave no-key to run without AI (fallback answers)'
+  DbPoolSize:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    MaxValue: 50
+    Description: 'DB connection pool size per app server (Day 7 experiment: 2)'
+  DbUsername:
+    Type: String
+    Default: 'admin'
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9]{0,15}$'
+    Description: 'RDS master user name'
+  DbPassword:                            # 수업용 공통 비밀번호가 기본값으로 들어 있다 (RDS 는 사설 서브넷 · db-sg 로만 열린다)
+    Type: String
+    NoEcho: true
+    Default: 'Wooriwon1!'
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: '^[a-zA-Z0-9!#%^*_+=-]+$'
+    ConstraintDescription: '8-41 chars: letters, digits, ! # % ^ * _ + = - (no / @ " or space)'
+    Description: 'RDS master password. Default Wooriwon1! - leave it as is'
+  DbInstanceClass:
+    Type: String
+    Default: 'db.t3.micro'
+    AllowedValues: ['db.t3.micro', 'db.t4g.micro']
+    Description: 'RDS size'
+  DesiredCapacity:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 3
+    Description: 'App servers to start with (min 1, max 3)'
+  RequestsPerTargetPerMinute:
+    Type: Number
+    Default: 600
+    MinValue: 10
+    Description: 'Target tracking: add servers when ALB requests per server per minute go above this'
+  DomainName:
+    Type: String
+    AllowedPattern: '^([a-z0-9-]+\.)+[a-z]{2,}$'
+    ConstraintDescription: 'e.g. kimyeonji.woncare.shop (no trailing dot)'
+    Description: 'My domain (e.g. kimyeonji.woncare.shop). Same as in the cert stack'
+  HostedZoneId:
+    Type: String
+    AllowedPattern: '^Z[A-Z0-9]+$'
+    ConstraintDescription: 'starts with Z'
+    Description: 'Route 53 > Hosted zones > my domain > Hosted zone ID (starts with Z)'
+  CertificateArn:
+    Type: String
+    AllowedPattern: '^arn:aws:acm:us-east-1:\d{12}:certificate/.+$'
+    ConstraintDescription: 'must be a us-east-1 certificate ARN (a Seoul certificate cannot be used by CloudFront)'
+    Description: 'CertificateArn output of the cert stack in N. Virginia (us-east-1)'
+  CloudFrontPrefixListId:
+    Type: String
+    Default: 'pl-22a6434b'
+    AllowedPattern: '^pl-[a-z0-9]+$'
+    ConstraintDescription: 'starts with pl-'
+    Description: 'VPC > Managed prefix lists > com.amazonaws.global.cloudfront.origin-facing (Seoul). ALB port 80 accepts CloudFront only'
+  GitHubRepo:
+    Type: String
+    AllowedPattern: '^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$'
+    ConstraintDescription: 'owner/repo, e.g. kimyeonji/07_cicd'
+    Description: 'My fork (owner/repo). Creates the GitHub Actions deploy role for its main branch (the account OIDC provider must already exist)'
+  GrafanaPassword:                       # 수업용 공통 비밀번호가 기본값으로 들어 있다 (Grafana 3000 은 내 IP 에게만 열린다)
+    Type: String
+    NoEcho: true
+    Default: 'Wooriwon1!'
+    AllowedPattern: '^[A-Za-z0-9!#%^*_+=-]{8,32}$'
+    ConstraintDescription: '8-32 chars: letters, digits, ! # % ^ * _ + = -'
+    Description: 'Grafana admin password (user admin). Default Wooriwon1! - leave it as is'
+
+Mappings:
+  RegionMap:
+    ap-northeast-2:
+      AzA: ap-northeast-2a
+      AzC: ap-northeast-2c
+
+Resources:
+  # =========================================================
+  # 01. 네트워크 (infra/wonit-a-network.yaml 과 같은 모양)
+  # =========================================================
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.250.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-vpc' }
+        - { Key: Owner, Value: !Ref YourName }
+
+  PublicSubnet2A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !FindInMap [RegionMap, !Ref 'AWS::Region', AzA]
+      CidrBlock: 10.250.4.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-vpc-pub-2a' }
+
+  PublicSubnet2C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !FindInMap [RegionMap, !Ref 'AWS::Region', AzC]
+      CidrBlock: 10.250.12.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-vpc-pub-2c' }
+
+  PrivateSubnet2A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !FindInMap [RegionMap, !Ref 'AWS::Region', AzA]
+      CidrBlock: 10.250.2.0/24
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-vpc-pri-2a' }
+
+  PrivateSubnet2C:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !FindInMap [RegionMap, !Ref 'AWS::Region', AzC]
+      CidrBlock: 10.250.14.0/24
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-vpc-pri-2c' }
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-igw' }
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-rt-pub' }
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  RTAssociationPub2A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2A
+      RouteTableId: !Ref PublicRouteTable
+
+  RTAssociationPub2C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2C
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-rt-pri' }
+
+  RTAssociationPri2A:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2A
+      RouteTableId: !Ref PrivateRouteTable
+
+  RTAssociationPri2C:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2C
+      RouteTableId: !Ref PrivateRouteTable
+
+  # 사설 서브넷의 앱 서버가 Docker 설치 · 이미지 받기를 하려면 NAT 로 나간다 (켜 둔 시간만큼 요금)
+  NatEIP2A:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-ngw-2a-eip' }
+
+  NatGateway2A:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP2A.AllocationId
+      SubnetId: !Ref PublicSubnet2A
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-ngw-2a' }
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway2A
+
+  # =========================================================
+  # 05. 보안 그룹: 각 그룹은 "바로 앞 단계" 에서 오는 것만 받는다 (아웃바운드는 기본값 = 모두 허용)
+  #   CloudFront --80--> ALB(web-sg) --8080--> 앱 서버(app-sg) --3306--> RDS(db-sg)
+  #   내 IP --22--> Bastion(bastion-sg) --22 / 8080--> 앱 서버 · --22--> 모니터링 · --3306--> RDS
+  #   내 IP --3000--> 모니터링(mon-sg) --8080 (Prometheus)--> 앱 서버 · --3306--> RDS
+  # =========================================================
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'wonit-a-${YourName}-prd-web-sg'
+      GroupDescription: 'ALB: HTTP 80 from CloudFront only (+ k6 from monitoring EC2)'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, SourcePrefixListId: !Ref CloudFrontPrefixListId, Description: 'HTTP from CloudFront' }
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-web-sg' }
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'wonit-a-${YourName}-prd-bastion-sg'
+      GroupDescription: 'Bastion: SSH 22 from my IP'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, CidrIp: !Ref MyIpCidr, Description: 'SSH from my IP' }
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-bastion-sg' }
+
+  MonSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'wonit-a-${YourName}-prd-mon-sg'
+      GroupDescription: 'Monitoring EC2: Grafana 3000 from my IP, SSH 22 from bastion'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 3000, ToPort: 3000, CidrIp: !Ref MyIpCidr, Description: 'Grafana from my IP' }
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, SourceSecurityGroupId: !Ref BastionSecurityGroup, Description: 'SSH from bastion' }
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-mon-sg' }
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'wonit-a-${YourName}-prd-app-sg'
+      GroupDescription: 'App servers: 8080 from ALB and monitoring, 22 / 8080 from bastion'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8080, ToPort: 8080, SourceSecurityGroupId: !Ref WebSecurityGroup, Description: 'app from ALB' }
+        - { IpProtocol: tcp, FromPort: 8080, ToPort: 8080, SourceSecurityGroupId: !Ref MonSecurityGroup, Description: 'Prometheus scrape' }
+        - { IpProtocol: tcp, FromPort: 22, ToPort: 22, SourceSecurityGroupId: !Ref BastionSecurityGroup, Description: 'SSH from bastion' }
+        - { IpProtocol: tcp, FromPort: 8080, ToPort: 8080, SourceSecurityGroupId: !Ref BastionSecurityGroup, Description: 'Swagger tunnel from bastion' }
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-app-sg' }
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'wonit-a-${YourName}-prd-db-sg'
+      GroupDescription: 'MySQL 3306 from app servers, bastion and monitoring'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !Ref AppSecurityGroup, Description: 'from app' }
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !Ref BastionSecurityGroup, Description: 'from bastion (mysql client)' }
+        - { IpProtocol: tcp, FromPort: 3306, ToPort: 3306, SourceSecurityGroupId: !Ref MonSecurityGroup, Description: 'from monitoring (mysql client)' }
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-db-sg' }
+
+  # =========================================================
+  # 03. RDS MySQL (사설 서브넷)
+  # =========================================================
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub 'wonit-a-${YourName}-prd-db-subnets'
+      DBSubnetGroupDescription: 'private 2a / 2c'
+      SubnetIds: [!Ref PrivateSubnet2A, !Ref PrivateSubnet2C]
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete           # 수업용: 스택을 지우면 DB 도 스냅샷 없이 지운다
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBInstanceIdentifier: !Sub 'wonit-a-${YourName}-prd-db'
+      Engine: mysql
+      EngineVersion: '8.4'
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: '20'
+      StorageType: gp3
+      DBName: bankdb
+      MasterUsername: !Ref DbUsername
+      MasterUserPassword: !Ref DbPassword
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VPCSecurityGroups: [!Ref DbSecurityGroup]
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 1
+      DeleteAutomatedBackups: true
+      DeletionProtection: false
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-db' }
+        - { Key: Owner, Value: !Ref YourName }
+
+  # =========================================================
+  # 04. 앱 서버 시작 템플릿: 켜질 때 Docker 설치 → .env 만들기 → :prod 이미지 실행
+  # =========================================================
+  AppLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub 'wonit-a-${YourName}-prd-lt'
+      LaunchTemplateData:
+        ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        SecurityGroupIds: [!Ref AppSecurityGroup]
+        MetadataOptions:
+          HttpTokens: required
+          HttpPutResponseHopLimit: 2
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-app' }
+              - { Key: Owner, Value: !Ref YourName }
+        UserData:
+          Fn::Base64: !Sub
+            - |
+              #!/bin/bash
+              set -eux
+              apt-get update -y
+              DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io
+              systemctl enable --now docker
+              usermod -aG docker ubuntu
+              cat > /opt/wonbank.env <<'EOF'
+              SPRING_PROFILES_ACTIVE=mysql,prod
+              DB_URL=jdbc:mysql://${DbHost}:3306/bankdb?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+              DB_USERNAME=${DbUsername}
+              DB_PASSWORD=${DbPassword}
+              JWT_SECRET=${JwtSecret}
+              GEMINI_API_KEY=${GeminiApiKey}
+              DB_POOL_SIZE=${DbPoolSize}
+              EOF
+              chmod 600 /opt/wonbank.env
+              docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /opt/wonbank.env ${DockerImage}
+            - DbHost: !GetAtt Database.Endpoint.Address
+
+  # =========================================================
+  # 05. ALB + 대상 그룹 + 리스너 (/actuator/* 는 밖에서 403)
+  # =========================================================
+  AppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'wonit-a-${YourName}-prd-tg'
+      VpcId: !Ref VPC
+      Protocol: HTTP
+      Port: 8080
+      TargetType: instance
+      HealthCheckPath: /actuator/health
+      HealthCheckIntervalSeconds: 15
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher: { HttpCode: '200' }
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: '30' }
+
+  AppLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'wonit-a-${YourName}-prd-alb'
+      Scheme: internet-facing
+      Type: application
+      Subnets: [!Ref PublicSubnet2A, !Ref PublicSubnet2C]
+      SecurityGroups: [!Ref WebSecurityGroup]
+      LoadBalancerAttributes:            # Tomcat 이 놀고 있는 연결을 20초에 끊으므로 ALB 는 그보다 짧게 (가끔 나는 502 방지)
+        - { Key: idle_timeout.timeout_seconds, Value: '15' }
+      Tags:
+        - { Key: Owner, Value: !Ref YourName }
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref AppLoadBalancer
+      Protocol: HTTP
+      Port: 80
+      DefaultActions:
+        - { Type: forward, TargetGroupArn: !Ref AppTargetGroup }
+
+  BlockActuatorRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref HttpListener
+      Priority: 10
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig: { Values: ['/actuator/*'] }
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig: { StatusCode: '403', ContentType: text/plain, MessageBody: 'forbidden' }
+
+  # =========================================================
+  # 06. Auto Scaling 그룹 + 대상 추적 정책 (서버 1대당 요청 수)
+  # =========================================================
+  AppAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: [HttpListener, PrivateRoute]
+    Properties:
+      AutoScalingGroupName: !Sub 'wonit-a-${YourName}-prd-asg'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AppLaunchTemplate
+        Version: !GetAtt AppLaunchTemplate.LatestVersionNumber
+      MinSize: '1'
+      MaxSize: '3'
+      DesiredCapacity: !Ref DesiredCapacity
+      VPCZoneIdentifier: [!Ref PrivateSubnet2A, !Ref PrivateSubnet2C]   # 앱 서버는 사설 서브넷 (공인 IP 없음)
+      TargetGroupARNs: [!Ref AppTargetGroup]
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300        # Docker 설치 + 이미지 받기 + 앱 시작에 3~4분 → 짧으면 뜨기 전에 교체된다
+      InstanceMaintenancePolicy:         # 교체할 때 새 서버를 먼저 띄우고 정상이 되면 옛 서버를 끈다 (종료 전 시작)
+        MinHealthyPercentage: 100
+        MaxHealthyPercentage: 200
+      MetricsCollection:
+        - Granularity: 1Minute
+      Tags:
+        - { Key: Owner, Value: !Ref YourName, PropagateAtLaunch: true }
+
+  RequestCountScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AppAutoScalingGroup
+      PolicyType: TargetTrackingScaling
+      EstimatedInstanceWarmup: 120
+      TargetTrackingConfiguration:
+        TargetValue: !Ref RequestsPerTargetPerMinute
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ALBRequestCountPerTarget
+          ResourceLabel: !Join ['/', [!GetAtt AppLoadBalancer.LoadBalancerFullName, !GetAtt AppTargetGroup.TargetGroupFullName]]
+
+  # =========================================================
+  # 07. 모니터링 EC2 (ASG 밖, 1대 고정): Prometheus 가 ASG 서버를 찾고, Grafana 가 CloudWatch 를 읽는다
+  #     역할: EC2 목록 읽기 + CloudWatch 읽기. 컨테이너에서 역할을 쓰려고 메타데이터 홉 제한 2
+  # =========================================================
+  MonRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'wonit-a-${YourName}-mon-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess
+      Tags:
+        - { Key: Owner, Value: !Ref YourName }
+
+  MonInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub 'wonit-a-${YourName}-mon-role'
+      Roles: [!Ref MonRole]
+
+  MonLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub 'wonit-a-${YourName}-mon-lt'
+      LaunchTemplateData:
+        MetadataOptions:
+          HttpTokens: required
+          HttpPutResponseHopLimit: 2
+
+  MonInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref MonLaunchTemplate
+        Version: !GetAtt MonLaunchTemplate.LatestVersionNumber
+      ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnet2C
+      SecurityGroupIds: [!Ref MonSecurityGroup]
+      IamInstanceProfile: !Ref MonInstanceProfile
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs: { VolumeSize: 20, VolumeType: gp3, DeleteOnTermination: true }
+      UserData:            # 켜지면서 Docker 설치 → monitoring/ 에 설정 파일 3개를 쓰고 → Prometheus · Grafana 를 띄운다
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -eux
+          apt-get update -y
+          DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2 git
+          systemctl enable --now docker
+          usermod -aG docker ubuntu
+          mkdir -p /home/ubuntu/monitoring
+          cd /home/ubuntu/monitoring
+          cat > prometheus.yml <<'EOF'
+          global:
+            scrape_interval: 5s
+          scrape_configs:
+            - job_name: wonbank
+              metrics_path: /actuator/prometheus
+              ec2_sd_configs:
+                - region: ap-northeast-2
+                  port: 8080
+                  refresh_interval: 30s
+                  filters:
+                    - name: tag:aws:autoscaling:groupName
+                      values: [wonit-a-${YourName}-prd-asg]
+                    - name: instance-state-name
+                      values: [running]
+              relabel_configs:
+                - source_labels: [__meta_ec2_instance_id]
+                  target_label: instance
+                - source_labels: [__meta_ec2_availability_zone]
+                  target_label: az
+          EOF
+          cat > compose.yml <<'EOF'
+          services:
+            prometheus:
+              image: prom/prometheus:v3.15.0
+              volumes:
+                - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+              ports: ["127.0.0.1:9090:9090"]
+              restart: unless-stopped
+            grafana:
+              image: grafana/grafana:13.2.4
+              env_file: .env
+              environment:
+                AWS_REGION: ap-northeast-2
+              ports: ["3000:3000"]
+              volumes:
+                - grafana-data:/var/lib/grafana
+              restart: unless-stopped
+          volumes:
+            grafana-data:
+          EOF
+          echo "GF_SECURITY_ADMIN_PASSWORD=${GrafanaPassword}" > .env
+          chmod 600 .env
+          chown -R ubuntu:ubuntu /home/ubuntu/monitoring
+          docker compose up -d
+          touch /home/ubuntu/.ready
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-mon' }
+        - { Key: Owner, Value: !Ref YourName }
+
+  MonEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref MonInstance
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-mon-eip' }
+
+  # Bastion (공개 2A, 작게): VPC 안으로 SSH 로 들어가는 유일한 문
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id}}'
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnet2A
+      SecurityGroupIds: [!Ref BastionSecurityGroup]
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          set -eux
+          apt-get update -y
+          DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-client
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-bastion' }
+        - { Key: Owner, Value: !Ref YourName }
+
+  BastionEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachGateway
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref BastionInstance
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-bastion-eip' }
+
+  # Day 7 부하 테스트: 모니터링 EC2 에서 ALB 주소로 k6 를 건다. 인터넷 경계형 ALB 에는 EC2 의 공인 IP 로 보이므로 IP 로 허용
+  AlbIngressFromMonitoring:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref WebSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: !Sub '${MonEIP}/32'
+      Description: 'k6 load test from monitoring EC2'
+
+  # =========================================================
+  # 08. GitHub Actions 배포 역할 (OIDC): 내 저장소의 main 만 이 역할을 쓸 수 있다
+  #     OIDC 공급자(token.actions.githubusercontent.com)는 계정에 하나뿐이라 미리 있어야 한다
+  # =========================================================
+  GitHubDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'wonit-a-${YourName}-github-deploy-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Sub 'arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepo}:ref:refs/heads/main'
+      Policies:
+        - PolicyName: deploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub 'arn:aws:s3:::wonit-a-${YourName}-web'
+              - Effect: Allow
+                Action: [s3:PutObject, s3:DeleteObject]
+                Resource: !Sub 'arn:aws:s3:::wonit-a-${YourName}-web/*'
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/*'
+              - Effect: Allow
+                Action: autoscaling:StartInstanceRefresh
+                Resource: !Sub 'arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/wonit-a-${YourName}-prd-asg'
+              - Effect: Allow
+                Action: [autoscaling:DescribeAutoScalingGroups, autoscaling:DescribeInstanceRefreshes]
+                Resource: '*'
+      Tags:
+        - { Key: Owner, Value: !Ref YourName }
+
+  # =========================================================
+  # 09. 화면: S3 + CloudFront(OAC, /api/* → ALB) + Route 53 별칭
+  # =========================================================
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'wonit-a-${YourName}-web'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - { Key: Owner, Value: !Ref YourName }
+
+  WebOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub 'wonit-a-${YourName}-web-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  WebDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: !Sub 'wonit-a-${YourName}-web'
+        Enabled: true
+        Aliases: [!Ref DomainName]
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_200
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: s3-web
+            DomainName: !GetAtt WebBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt WebOAC.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: alb-api
+            DomainName: !GetAtt AppLoadBalancer.DNSName
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+        DefaultCacheBehavior:
+          TargetOriginId: s3-web
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6          # Managed-CachingOptimized
+        CacheBehaviors:
+          - PathPattern: '/api/*'
+            TargetOriginId: alb-api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad        # Managed-CachingDisabled
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac # Managed-AllViewerExceptHostHeader
+      Tags:
+        - { Key: Owner, Value: !Ref YourName }
+
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub '${WebBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}'
+
+  SiteAliasRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt WebDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+        EvaluateTargetHealth: false
+
+Outputs:
+  SiteUrl:
+    Description: '1) My site (screen files arrive in Day 6). API test: https://<domain>/api/...'
+    Value: !Sub 'https://${DomainName}'
+  AsgName:
+    Description: 'GitHub variable ASG_NAME'
+    Value: !Ref AppAutoScalingGroup
+  DeployRoleArn:
+    Description: 'GitHub variable AWS_DEPLOY_ROLE_ARN'
+    Value: !GetAtt GitHubDeployRole.Arn
+  WebBucketName:
+    Description: 'GitHub variable WEB_BUCKET'
+    Value: !Ref WebBucket
+  CloudFrontDistributionId:
+    Description: 'GitHub variable CF_DISTRIBUTION_ID'
+    Value: !Ref WebDistribution
+  GrafanaUrl:
+    Description: 'Grafana (user admin, password Wooriwon1! unless changed). Opens only from MyIpCidr'
+    Value: !Sub 'http://${MonEIP}:3000'
+  AlbDnsName:
+    Description: 'ALB address. Accepts CloudFront only (and k6 from the monitoring EC2)'
+    Value: !GetAtt AppLoadBalancer.DNSName
+  BastionIp:
+    Description: 'Bastion Elastic IP (the only SSH entry point)'
+    Value: !Ref BastionEIP
+  AppSsh:
+    Description: 'SSH to an app server through the bastion (private IP from EC2 console)'
+    Value: !Sub 'ssh -i ${KeyName}.pem -o ProxyCommand="ssh -i ${KeyName}.pem -W %h:%p ubuntu@${BastionEIP}" ubuntu@<app private IP>'
+  MonitoringSsh:
+    Description: 'SSH to the monitoring EC2 through the bastion'
+    Value: !Sub 'ssh -i ${KeyName}.pem -o ProxyCommand="ssh -i ${KeyName}.pem -W %h:%p ubuntu@${BastionEIP}" ubuntu@${MonInstance.PrivateIp}'
+  SwaggerTunnel:
+    Description: '(Optional) Swagger: run this, then open http://localhost:8080/swagger-ui.html'
+    Value: !Sub 'ssh -i ${KeyName}.pem -N -L 8080:<app private IP>:8080 ubuntu@${BastionEIP}'
+  RdsEndpoint:
+    Description: 'RDS endpoint (already in the launch template)'
+    Value: !GetAtt Database.Endpoint.Address

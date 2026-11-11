@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'WONIT-A WON Banking - HTTPS certificate for my domain (N. Virginia us-east-1 only, because CloudFront reads certificates from us-east-1)'
+
+# 인증서 스택: 스택 이름 wonit-a-<이름>-cert, 리전은 반드시 버지니아 북부(us-east-1)
+#   먼저: Route 53 에 호스팅 영역 <이름>.woncare.shop 을 만들고, NS 4줄을 발급 사이트에 등록해 둔다 (docs/day5-aws.md 5-3)
+#   이 스택이 인증서를 요청하고, 검증용 CNAME 레코드를 내 호스팅 영역에 저절로 넣는다 → 발급되면 CREATE_COMPLETE (5~10분)
+#   출력의 CertificateArn 을 서울 스택(wonit-a-<이름>-stack)의 CertificateArn 칸에 붙여 넣는다
+# 지울 때: 서울 스택을 먼저 지운 뒤 (CloudFront 가 이 인증서를 쓰는 동안은 지워지지 않는다)
+# 콘솔에 보이는 글자(설명 · 출력)는 한글이 깨지지 않게 영어로 적는다. 한글은 # 주석에만
+
+Parameters:
+  YourName:
+    Type: String
+    Default: 'myname'
+    AllowedPattern: '^[a-z0-9][a-z0-9-]{1,15}$'
+    ConstraintDescription: 'lowercase letters, digits, hyphen (2-16 chars)'
+    Description: 'My name in lowercase (same as the Seoul stack)'
+  DomainName:
+    Type: String
+    AllowedPattern: '^([a-z0-9-]+\.)+[a-z]{2,}$'
+    ConstraintDescription: 'e.g. kimyeonji.woncare.shop (no trailing dot)'
+    Description: 'My domain (e.g. kimyeonji.woncare.shop)'
+  HostedZoneId:
+    Type: String
+    AllowedPattern: '^Z[A-Z0-9]+$'
+    ConstraintDescription: 'starts with Z'
+    Description: 'Route 53 > Hosted zones > my domain > Hosted zone ID (starts with Z)'
+
+Rules:
+  OnlyVirginia:
+    Assertions:
+      - Assert: !Equals [!Ref 'AWS::Region', 'us-east-1']
+        AssertDescription: 'Create this stack in N. Virginia (us-east-1). CloudFront cannot use certificates from other regions'
+
+Resources:
+  SiteCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId    # 검증용 CNAME 을 이 호스팅 영역에 저절로 넣는다
+      Tags:
+        - { Key: Name, Value: !Sub 'wonit-a-${YourName}-cert' }
+        - { Key: Owner, Value: !Ref YourName }
+
+Outputs:
+  CertificateArn:
+    Description: 'Copy into CertificateArn of the Seoul stack (wonit-a-<name>-stack)'
+    Value: !Ref SiteCertificate

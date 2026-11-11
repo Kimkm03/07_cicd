@@ -1,0 +1,12 @@
+FROM eclipse-temurin:21-jdk
+
+# mkdir /app && cd /app 
+WORKDIR /app
+COPY . .
+RUN chmod +x gradlew && ./gradlew bootJar --no-daemon
+# 실제로 8080포트에 띄우는 역할은 하지 않습니다. 
+# 설명처럼 흔적을 남겨서 알립니다.
+EXPOSE 8080
+
+# 컨테이너가 실행될 때 넘겨주는 명령어
+ENTRYPOINT ["java","-jar","build/libs/wonit-0.0.1-SNAPSHOT.jar"]

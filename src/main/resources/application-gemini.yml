@@ -1,0 +1,9 @@
+# Gemini 의 "OpenAI 호환" 주소를 쓴다.  실행: GEMINI_API_KEY=... ./gradlew bootRun --args='--spring.profiles.active=gemini'
+spring:
+  ai:
+    openai:
+      base-url: https://generativelanguage.googleapis.com/v1beta/openai
+      api-key: ${GEMINI_API_KEY}              # 🚨 키는 환경변수에서만 읽는다
+      chat:
+        model: ${AI_MODEL:모델-이름을-넣으세요}   # 수업 당일 사이트에서 저렴한 모델 이름 확인
+      # (선택) RAG 임베딩은 이 OpenAI 호환 주소를 쓰지 않는다 → application.yml 의 Gemini 전용 연결(google.genai.embedding)이 같은 GEMINI_API_KEY 로 만든다

@@ -1,0 +1,31 @@
+# 운영 설정: mysql 위에 겹쳐 쓴다 → SPRING_PROFILES_ACTIVE=mysql,prod (뒤 프로필이 앞의 값을 덮어쓴다)
+spring:
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}   # DB 연결 개수(창구 직원 수)
+
+logging:
+  level:
+    com.example.wonit: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: "OFF"      # 비밀번호 해시 같은 실제 값이 로그에 남는다
+    org.springframework.orm.jpa.JpaTransactionManager: INFO
+    org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: "OFF"   # AI 에 보낸 고객 정보가 통째로 남는다
+
+jwt:
+  secret: ${JWT_SECRET}      # 기본값 없음: 환경변수가 없으면 앱이 뜨지 않는다 (Fail-Fast)
+
+# 📊 Prometheus 가 읽어 갈 주소(/actuator/prometheus)를 연다. 운영 서버(prod)에서만
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}   # 모든 숫자에 application=wonit 꼬리표 (Grafana 대시보드의 Application 선택칸)

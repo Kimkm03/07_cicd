@@ -1,0 +1,41 @@
+# 화면(프론트엔드) CD. 쓰려면 복사한다: cp ci/frontend.yml .github/workflows/
+# 필요한 값(저장소 Settings > Secrets and variables > Actions): 변수 AWS_DEPLOY_ROLE_ARN, WEB_BUCKET (wonit-a-<이름>-web), CF_DISTRIBUTION_ID
+#   값은 서울 스택 출력의 WebBucketName · CloudFrontDistributionId. WEB_BUCKET 을 넣기 전에는 잡이 "건너뜀" 으로 끝난다
+name: frontend
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**']          # 화면 코드가 바뀐 push 에서만 돈다
+  workflow_dispatch:
+
+permissions:
+  id-token: write                   # OIDC: AWS 키 없이 역할로 들어간다
+  contents: read
+
+jobs:
+  deploy:
+    if: vars.WEB_BUCKET != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_BASE: /api       # 화면이 API 를 "지금 주소의 /api" 로 부르게 (CloudFront 가 /api/* 를 ALB 로 보낸다). 화면 코드는 그대로
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+      # dist "안의 파일들" 을 버킷 맨 위에 올리고, 버킷에만 남은 옛 파일은 지운다
+      - run: aws s3 sync dist s3://${{ vars.WEB_BUCKET }} --delete
+      # CloudFront 가 복사해 둔 옛 화면(index.html)을 버린다
+      - run: aws cloudfront create-invalidation --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} --paths '/*'

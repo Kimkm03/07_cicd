@@ -1,0 +1,60 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.1'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+// Spring AI: BOM = "이 버전들끼리는 서로 맞는다" 는 버전 목록표 (아래 스타터에는 버전을 따로 적지 않는다)
+dependencyManagement {
+	imports {
+		mavenBom 'org.springframework.ai:spring-ai-bom:2.0.1'
+	}
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-h2console'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'com.h2database:h2'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    // WebMVC Test Starter includes Spring MVC Test, JSONassert, JsonPath, and Mockito
+    testImplementation("org.springframework.boot:spring-boot-webmvc-test:4.1.1")
+
+    testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	implementation("mysql:mysql-connector-java:8.0.33")
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-starter-model-google-genai-embedding'   // (선택) RAG: Gemini 전용 임베딩 연결 (켜고 끄기는 application.yml 맨 아래 두 줄)
+	implementation 'org.springframework.ai:spring-ai-vector-store'            // (선택) RAG: 문서를 담는 벡터 저장소 (SimpleVectorStore)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
+	implementation 'io.micrometer:micrometer-registry-prometheus'   // /actuator/prometheus: Prometheus 가 읽어 가는 숫자 형식 (버전은 Boot 가 맞춘다)
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

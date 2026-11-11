@@ -1,0 +1,128 @@
+https://02-react-ct6x5bk2g-thisispaperdolls-projects.vercel.app/
+
+- 실습1: Transaction 테이블로 3tier architecture를 따르도록 Controller/Service/Repository/Model을 활용한 직접 READ API 만들어보기
+- 실습2:
+    - getTransactionByCategory
+        - 카테고리명으로 거래내역을 검색하는 API
+        - // transactions/select?category=식비
+        - 완전일치/일부일치 여부 확인해보기
+    - getTransactionByCategoryOrMemo
+        - 카테고리 또는 메모로 거래내역을 검색하는 API
+        - // transactions/select?category=식비&memo=회사
+    - getTransactionByAmount
+        - 거래내역의 최소/최대 금액으로 결제기록을 검색하는 API
+        - //    transactions/select2?minAmount=10000&maxAmount=20000
+
+
+
+    # 1. h2 db로 되돌린다
+    # 2. controller/service/dto/repository/entity에 transaction어쩌구 class를 만들고 어노테이션을 붙인다
+    # 3. 위의 요구사항을 AI한테 전달하고 API 설계를 작성한다 (변수명 등은 고정)
+    # 4. 구현
+    # 5. h2 db에 샘플 코드 insert 한다. (data.sql에서 transaction 테이블에 insert 하는 구문 주석 풀기)
+    # 6. Swagger나 Boomerang으로 테스팅 확인한다.
+    # 7. AI에게 REST API의 규칙을 따르는지, 쿼리는 효율적인지, 불필요한 코드는 없는지 등등 점검 요청
+
+
+--------------------
+# 이 파일은 들여쓰기(스페이스 2칸)가 곧 문법입니다. 탭을 쓰거나 칸이 어긋나면 앱이 뜨지 않습니다.
+# ${이름:기본값} = 환경변수가 있으면 그 값, 없으면 콜론 뒤의 기본값.
+# 원래는 비밀번호를 이 파일에 직접 쓰지 않습니다. 깃에 올라가는 순간 모두에게 공개되기 때문입니다.
+spring:
+  application:
+    name: wonit
+  datasource:
+    #   h2 database
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+#  # MySQL Database
+#      url: jdbc:mysql://${host}:3306/${database}?useSSL=false&serverTimezone=Asia/Seoul
+#      username: ${username}
+#      password: ${password}
+#      driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      # ddl-auto 옵션: create, create-drop, update, validate, none
+      # - create: 테이블을 새로 만듭니다. 기존 데이터가 삭제될 수 있습니다.
+      # - create-drop: 테이블을 만들고 애플리케이션 종료 시 제거합니다.
+      # - update: 기존 테이블 구조를 엔티티에 맞춰 변경하려고 시도합니다.
+      # - validate: 구조가 맞는지만 검사합니다.
+      # - none: 스키마 관련 자동 처리를 하지 않습니다.
+      ddl-auto: create
+      database-platform: org.hibernate.dialect.H2Dialect
+
+    show-sql: true            # 실행되는 SQL 을 콘솔에 찍는다
+    properties:
+      hibernate:
+        format_sql: true      # SQL 을 줄바꿈해서 사람이 읽기 좋게 출력한다
+
+    # Hibernate가 테이블을 생성한 후 data.sql 실행
+    defer-datasource-initialization: true
+  h2:
+    console:
+      enabled: true
+
+# 한글이 들어가면 깨지는 경우들이 종종 있습니다. 개발시 처음에 꼭 확인 필요
+# .env 안에 추가한 title 환경변수를 가져와서 사용해보십시오.
+# ${변수명:기본값} = 환경변수가 있으면 그 값, 없으면 콜론 뒤의 기본값.
+app:
+  title: ${title:스프링부트 어플리케이션 3}
+
+----
+1. ITStudy 아래에 다른 폴더를 만든다
+2. 그 폴더 안에서 터미널을 실행한다
+3. git clone https://github.com/WONIT-A/04_springBoot.git .
+4. IntelliJ에서 새 창을 열어서 해당 프로젝트를 최상위 폴더로 연다.
+5. resource/application.yml에
+
+server:
+	port:
+  	8081
+
+6. 추가 후 스프링부트 프로젝트르 실행한다
+-> 에러가 나면 .gitignore에 .env가 등록되어 있을 겁니다.
+7. http://localhost:8081/swagger-ui/index.html
+
+---------------------
+오후 4시 30분까지 디버깅연습
+
+
+   1.  AccountController.java의 아래 메서드
+   @PostMapping
+   public AccountResponse createAccount(@RequestBody AccountCreateRequest request) {
+       Account account = accountService.createAccount(request);
+       return AccountResponse.from(account);
+   }
+   @Postmapping 메서드에 DB에 이미 들어있는
+   {
+     "customerId": 1,
+     "accountType": "적금"
+   }
+   라는 값을 RequestBody로 넣었는데 왜 500번 에러가 터지는지
+
+   2. AccountController.java의 아래 메서드
+
+    // min~ max balance 사이의 계좌 정보를 검색
+    // http://localhost:8080/api/accounts/balance?minBalance=500000&maxBalance=1300000
+
+    @GetMapping("/balance")
+    public List<Account> getAccountBetweenBalance(@RequestParam long minBalance, @RequestParam long maxBalance) {
+        return accountService.getAccountBetweenBalance(maxBalance, minBalance); // 파라미터 순서 바꿈
+    }
+
+---
+
+   **🔍 디버깅 루틴 7단계**
+
+   1. **증상을 한 문장으로** — "1002-345-112233 을 조회하면 404 가 난다"
+   2. **재현** —  어느 요청으로 매번 똑같이 나는가?
+   3. **스택트레이스 읽기** — 맨 위는 "어디서 터졌나", **맨 아래 `Caused by:`** 가 "진짜 원인". `com.example.wonit` 으로 시작하는 첫 줄 = 우리 코드
+   4. **로그 따라가기** — 마지막으로 찍힌 우리 로그는? 그다음 찍혀야 할 로그는?
+   5. **SQL · 바인딩 로그** — DB 에 내가 생각한 값이 갔나?
+   6. **브레이크포인트** — 위에서 좁힌 곳에 걸고 변수값 확인
+   7. **가설 → 한 군데만 고치기 → 2번으로**
+
+

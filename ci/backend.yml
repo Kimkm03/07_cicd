@@ -1,0 +1,70 @@
+# 서버(백엔드) CI/CD. 쓰려면 복사한다: mkdir -p .github/workflows && cp ci/backend.yml .github/workflows/
+# 필요한 값(저장소 Settings > Secrets and variables > Actions)
+#   1단계(6교시): 변수 DOCKERHUB_USERNAME, 시크릿 DOCKERHUB_TOKEN → push 하면 테스트 → 이미지 → :prod 이름표까지
+#   2단계(8교시): 변수 AWS_DEPLOY_ROLE_ARN · ASG_NAME (서울 스택 출력의 DeployRoleArn · AsgName) → 그다음 push 부터 서버 교체까지
+# 롤백 = Actions 에서 예전 성공 실행을 열어 "Re-run all jobs" (그 커밋의 이미지로 :prod 가 돌아가고 서버가 다시 교체된다)
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['frontend/**', 'docs/**', '**.md']   # 화면 · 문서만 바뀌면 서버는 다시 배포하지 않는다
+  workflow_dispatch:      # Actions 탭에서 손으로 실행
+
+permissions:
+  id-token: write         # GitHub 가 AWS 에 "이 저장소의 main 입니다" 증명서(OIDC 토큰)를 받는다 (deploy 잡)
+  contents: read
+
+jobs:
+  # 테스트가 깨지면 빨간 X → 아래 단계는 실행되지 않는다
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle      # 라이브러리를 매번 다시 받지 않는다
+      - run: chmod +x gradlew && ./gradlew test
+
+  # 이미지를 만들어 Docker Hub 에 커밋 번호(SHA) 이름표로 올린다
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64      # Mac(arm64)에서 만든 이미지는 EC2(amd64)에서 안 돈다 → Actions 가 amd64 로 만든다
+          push: true
+          tags: ${{ vars.DOCKERHUB_USERNAME }}/wonbank:${{ github.sha }}
+
+  # 서버는 늘 :prod 를 받는다 → 이번 커밋 이미지에 prod 이름표를 옮겨 붙이고, (ASG 가 있으면) 서버를 새것으로 바꾼다
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - run: docker buildx imagetools create -t ${{ vars.DOCKERHUB_USERNAME }}/wonbank:prod ${{ vars.DOCKERHUB_USERNAME }}/wonbank:${{ github.sha }}
+      # 아래 두 단계는 ASG_NAME 변수를 넣은 뒤(8교시)부터 돈다. 그 전에는 "건너뜀" 으로 보인다
+      - if: vars.ASG_NAME != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}   # 키 대신 역할: GitHub 에 AWS 비밀번호를 저장하지 않는다
+          aws-region: ap-northeast-2
+      # 새 서버를 먼저 띄우고(최대 200%) 정상이 되면 옛 서버를 끈다 → 끊김 없이 교체
+      - if: vars.ASG_NAME != ''
+        run: >
+          aws autoscaling start-instance-refresh
+          --auto-scaling-group-name ${{ vars.ASG_NAME }}
+          --preferences '{"MinHealthyPercentage":100,"MaxHealthyPercentage":200,"InstanceWarmup":120}'

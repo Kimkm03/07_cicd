@@ -1,0 +1,11 @@
+# OpenRouter = 여러 회사의 AI 를 한 주소로 부르는 "AI 모음 창구".  실행: --spring.profiles.active=openrouter
+spring:
+  ai:
+    openai:
+      base-url: https://openrouter.ai/api/v1   # 🚨 /v1 까지 적는다 (스타터가 뒤에 /chat/completions 만 붙인다)
+      api-key: ${OPENROUTER_API_KEY}
+      chat:
+        model: ${AI_MODEL:모델-이름을-넣으세요}   # OpenRouter 는 "제공사/모델" 형태
+      embedding:
+        options:
+          model: ${AI_EMBEDDING_MODEL:openai/text-embedding-3-small}   # (선택) RAG 용. OpenRouter 의 임베딩 지원 여부는 확인 필요. 쓰려면 application.yml 맨 아래에서 openai 두 줄의 주석을 푼다

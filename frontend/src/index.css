@@ -1,0 +1,208 @@
+/* src/index.css */
+/* 우리WON뱅킹 미니 - 공통 스타일 */
+
+/* index.css와 App.css 중에는 무엇이 우선하게 될까요?
+   CSS 캐스케이드는 !important → 명시도 → 소스 순서로 판단합니다.
+   명시도가 같을 때에 한해, 나중에 로드된 쪽이 이깁니다.
+   보통 main.jsx가 index.css를 먼저 import하므로 App.css가 나중이 됩니다.
+
+   다만 실무에서는 이 순서에 의존하지 않는 편이 안전합니다.
+   번들러 설정이나 코드 스플리팅에 따라 순서가 달라질 수 있어서요.
+   역할을 나눠두면 애초에 충돌이 생기지 않습니다.
+     index.css — 리셋, 폰트, CSS 변수, body나 :root 같은 전역 기반
+     App.css   — 앱 레벨 레이아웃 */
+
+/* 자주 쓰는 색을 변수로 모아뒀습니다. 색을 바꾸고 싶을 때 여기 한 곳만 고치면 됩니다. */
+:root {
+  --brand: #dc1655;
+  --bg: #f4f5f7;
+  --text: #1f1f1f;
+  --muted: #8a8f98;
+  --line: #eceef1;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  font-family: system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: var(--text);
+}
+
+#root {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  box-sizing: border-box;
+}
+
+h1 {
+  color: var(--brand);
+  font-size: 20px;
+  margin: 0 0 20px;
+}
+
+/* 헤더 안에 시계가 들어오면서 아래 내용과 붙어 보이지 않도록 여백을 줍니다. */
+header {
+  margin-bottom: 16px;
+}
+
+header h1 {
+  margin: 0;
+}
+
+/*  !important 로 꼭 지켜야되는 속성들을 CSS에서 막아줄 수 있습니다.
+    하지만 권장되지는 않는다 */
+.card {
+  background: #d85353;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.balance {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 좌우로 벌려서 정렬할 때 쓰는 공통 클래스 */
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 계좌 상태를 보여주는 작은 알약 모양 배지 */
+.badge {
+  display: inline-block;
+  color: #ffffff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* 제목이 있는 섹션(패널) */
+.panel {
+  margin-bottom: 24px;
+}
+
+.panel h2 {
+  font-size: 14px;
+  color: #5a6069;
+  margin: 0 0 8px;
+}
+
+/* 맨 위 총 자산 카드 */
+.total {
+  background: var(--brand);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.total .muted {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.total .balance {
+  color: #ffffff;
+}
+
+/* 거래 내역 한 줄 */
+.tx-row {
+  display: flex;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tx-row:last-child {
+  border-bottom: none;
+}
+
+.amount-in {
+  color: var(--brand);
+}
+
+.amount-out {
+  color: var(--text);
+}
+
+/* 화면 맨 위 버튼 줄 (계좌번호 토글, 금액 토글) */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+/* S4: 계좌 카드 안 버튼들이 들어가는 영역 */
+.card-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+/* 기본 버튼 - 배경이 채워진 형태 */
+.btn {
+  background: var(--brand);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn:disabled {
+  background: #c9ced6;
+  cursor: not-allowed;
+}
+
+/* 테두리만 있는 버튼 - 토글 버튼에 사용 */
+.btn-ghost {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid var(--brand);
+}
+
+/* 필터 칩들을 감싸는 줄 */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* 필터 칩 하나 */
+.chip {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+/* 현재 선택된 칩 */
+.chip.on {
+  background: var(--brand);
+  color: #ffffff;
+  border-color: var(--brand);
+}
+
+/* 필터링된 거래 건수와 합계를 보여주는 요약 줄 */
+.summary {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}

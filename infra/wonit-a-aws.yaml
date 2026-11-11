@@ -687,7 +687,12 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepo}:ref:refs/heads/main'
+                token.actions.githubusercontent.com:sub:   # GitHub 가 보내는 sub 는 두 모양이 있다: 예전 repo:아이디/저장소:… , 새 repo:아이디@숫자/저장소@숫자:…
+                  - !Sub 'repo:${GitHubRepo}:ref:refs/heads/main'
+                  - !Sub
+                    - 'repo:${Owner}@*/${Repo}@*:ref:refs/heads/main'
+                    - Owner: !Select [0, !Split ['/', !Ref GitHubRepo]]
+                      Repo: !Select [1, !Split ['/', !Ref GitHubRepo]]
       Policies:
         - PolicyName: deploy
           PolicyDocument:

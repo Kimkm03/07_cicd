@@ -361,7 +361,7 @@ flowchart LR
    | `CloudFrontPrefixListId` | 기본값 그대로 | "CloudFront 가 쓰는 주소 모음" ID |
    | `GrafanaPassword` | 기본값 `Wooriwon1!` | 그대로 (Grafana 로그인 비밀번호) |
 
-5. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면 **IAM 리소스를 만들 수 있음** 체크 → **전송**
+5. 다음 → **스택 옵션 구성** 화면: 태그 **새 태그 추가** → `Owner` = `<이름>`, 같은 화면 맨 아래 **기능** 의 **AWS CloudFormation에서 사용자 지정 이름으로 IAM 리소스를 생성할 수 있음을 승인합니다** 체크 → 다음 → 검토 화면에서 **전송**
 6. 기다리는 동안 **이벤트** 탭을 새로고침하며 봅니다. 네트워크 → 보안 그룹 → RDS → ALB … 순서로 `CREATE_COMPLETE` 가 늘어납니다. RDS 와 CloudFront 가 가장 오래 걸립니다.
 
 **⚠️ 틀리기 쉬운 곳**

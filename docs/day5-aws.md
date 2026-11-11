@@ -357,7 +357,7 @@
 | `InstanceType` · `DbInstanceClass` · `DbPoolSize` · `DesiredCapacity` · `RequestsPerTargetPerMinute` | 기본값 그대로 | Day 7 에서 일부를 바꿔 봄 |
 
    ![서울 스택 파라미터 화면(YourName · KeyName · MyIpCidr · DockerImage · DomainName · CertificateArn 등 입력됨, 비밀값은 가려짐)](images/day5/d5-09-stack-params.png)
-5. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면에서 **IAM 리소스를 만들 수 있음**(역할 2개를 만듭니다)에 **체크** → **전송**. 15~20분 걸립니다.
+5. 다음 → **스택 옵션 구성** 화면에서 태그 `Owner` = `<이름>` 을 넣고, 같은 화면 맨 아래 **기능** 의 **IAM 리소스를 생성할 수 있음을 승인합니다**(역할 2개를 만듭니다)에 **체크** → 다음 → **전송**. 15~20분 걸립니다.
 
 **✅ 되었으면**: 스택 `wonit-a-<이름>-stack` 이 **CREATE_IN_PROGRESS** 로 시작했습니다.
 

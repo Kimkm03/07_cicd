@@ -1,0 +1,506 @@
+{
+  "uid": "wonit-overview",
+  "title": "우리WON 전체 상황판",
+  "tags": [
+    "wonit"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "schemaVersion": 39,
+  "templating": {
+    "list": [
+      {
+        "name": "ds",
+        "label": "데이터 소스",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "떠 있는 서버 수",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "count(up{job=\"wonbank\"} == 1)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "전체 초당 요청",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"wonit\", uri!~\"/actuator.*\"}[1m]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "평균 CPU",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "avg(process_cpu_usage{application=\"wonit\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "전체 힙 사용률",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(jvm_memory_used_bytes{application=\"wonit\", area=\"heap\"}) / sum(jvm_memory_max_bytes{application=\"wonit\", area=\"heap\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "초당 이체 건수",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_requests_seconds_count{uri=\"/api/transfers\"}[1m]))",
+          "legendFormat": "이체"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "전체 초당 요청",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_requests_seconds_count{application=\"wonit\", uri!~\"/actuator.*\"}[1m]))",
+          "legendFormat": "요청"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "평균 응답 시간",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_requests_seconds_sum{application=\"wonit\", uri!~\"/actuator.*\"}[1m])) / sum(rate(http_server_requests_seconds_count{application=\"wonit\", uri!~\"/actuator.*\"}[1m]))",
+          "legendFormat": "평균"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "평균 CPU · 서버 수",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "avg(process_cpu_usage{application=\"wonit\"})",
+          "legendFormat": "평균 CPU"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "count(up{job=\"wonbank\"} == 1)",
+          "legendFormat": "서버 수"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "서버 수"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "DB 연결 (전체)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(hikaricp_connections_active{application=\"wonit\"})",
+          "legendFormat": "쓰는 중"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "sum(hikaricp_connections_pending{application=\"wonit\"})",
+          "legendFormat": "기다리는 요청"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "서버별 up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds}"
+          },
+          "editorMode": "code",
+          "expr": "up{job=\"wonbank\"}",
+          "legendFormat": "{{az}} {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

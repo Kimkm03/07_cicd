@@ -21,7 +21,7 @@ Metadata:
       - Label: { default: '3. Database (RDS MySQL)' }
         Parameters: [DbUsername, DbPassword, DbInstanceClass]
       - Label: { default: '4. Auto Scaling' }
-        Parameters: [DesiredCapacity, RequestsPerTargetPerMinute]
+        Parameters: [MinServers, MaxServers, DesiredCapacity, RequestsPerTargetPerMinute]
       - Label: { default: '5. Web: S3 + CloudFront + my domain HTTPS' }
         Parameters: [DomainName, HostedZoneId, CertificateArn, CloudFrontPrefixListId]
       - Label: { default: '6. Monitoring EC2 (Prometheus + Grafana)' }
@@ -92,12 +92,24 @@ Parameters:
     Default: 'db.t3.micro'
     AllowedValues: ['db.t3.micro', 'db.t4g.micro']
     Description: 'RDS size'
+  MinServers:                            # 서버 수 범위: 최소 ~ 최대 (스택 업데이트로 바꿔 볼 수 있다, 예: 2 ~ 5)
+    Type: Number
+    Default: 1
+    MinValue: 1
+    MaxValue: 5
+    Description: 'Fewest app servers the Auto Scaling group keeps (1-5)'
+  MaxServers:
+    Type: Number
+    Default: 3
+    MinValue: 1
+    MaxValue: 5
+    Description: 'Most app servers the Auto Scaling group may add (1-5, must be >= MinServers)'
   DesiredCapacity:
     Type: Number
     Default: 1
     MinValue: 1
-    MaxValue: 3
-    Description: 'App servers to start with (min 1, max 3)'
+    MaxValue: 5
+    Description: 'App servers to start with (between MinServers and MaxServers)'
   RequestsPerTargetPerMinute:
     Type: Number
     Default: 600
@@ -484,8 +496,8 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref AppLaunchTemplate
         Version: !GetAtt AppLaunchTemplate.LatestVersionNumber
-      MinSize: '1'
-      MaxSize: '3'
+      MinSize: !Ref MinServers
+      MaxSize: !Ref MaxServers
       DesiredCapacity: !Ref DesiredCapacity
       VPCZoneIdentifier: [!Ref PrivateSubnet2A, !Ref PrivateSubnet2C]   # 앱 서버는 사설 서브넷 (공인 IP 없음)
       TargetGroupARNs: [!Ref AppTargetGroup]
@@ -561,7 +573,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs: { VolumeSize: 20, VolumeType: gp3, DeleteOnTermination: true }
-      UserData:            # 켜지면서 Docker 설치 → monitoring/ 에 설정 파일 3개를 쓰고 → Prometheus · Grafana 를 띄운다
+      UserData:            # 켜지면서 Docker 설치 → monitoring/ 에 설정 파일을 쓰고 → 내 fork 의 대시보드 JSON 을 받고 → Prometheus · Grafana 를 띄운다
         Fn::Base64: !Sub |
           #!/bin/bash
           set -eux
@@ -608,10 +620,33 @@ Resources:
               ports: ["3000:3000"]
               volumes:
                 - grafana-data:/var/lib/grafana
+                - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+                - ./grafana/dashboards:/etc/grafana/dashboards:ro
               restart: unless-stopped
           volumes:
             grafana-data:
           EOF
+          # 대시보드 자동 불러오기: 내 fork 의 monitoring/grafana/*.json 을 받아 Grafana 가 읽는다 (5분마다 다시 받음)
+          mkdir -p grafana/provisioning/dashboards grafana/dashboards
+          cat > grafana/provisioning/dashboards/wonit.yml <<'EOF'
+          apiVersion: 1
+          providers:
+            - name: wonit
+              folder: WONIT
+              type: file
+              allowUiUpdates: true
+              updateIntervalSeconds: 30
+              options:
+                path: /etc/grafana/dashboards
+          EOF
+          cat > pull-dashboards.sh <<'EOF'
+          #!/bin/bash
+          curl -fsSL -o /home/ubuntu/monitoring/grafana/dashboards/wonit-overview.json.tmp https://raw.githubusercontent.com/${GitHubRepo}/main/monitoring/grafana/wonit-overview.json \
+            && mv /home/ubuntu/monitoring/grafana/dashboards/wonit-overview.json.tmp /home/ubuntu/monitoring/grafana/dashboards/wonit-overview.json
+          EOF
+          chmod +x pull-dashboards.sh
+          ./pull-dashboards.sh || true
+          echo '*/5 * * * * root /home/ubuntu/monitoring/pull-dashboards.sh' > /etc/cron.d/wonit-dashboards
           echo "GF_SECURITY_ADMIN_PASSWORD=${GrafanaPassword}" > .env
           chmod 600 .env
           chown -R ubuntu:ubuntu /home/ubuntu/monitoring

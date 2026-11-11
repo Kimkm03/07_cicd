@@ -1,7 +1,7 @@
 # 서버(백엔드) CI/CD. 쓰려면 복사한다: mkdir -p .github/workflows && cp ci/backend.yml .github/workflows/
 # 필요한 값(저장소 Settings > Secrets and variables > Actions)
-#   1단계(6교시): 변수 DOCKERHUB_USERNAME, 시크릿 DOCKERHUB_TOKEN → push 하면 테스트 → 이미지 → :prod 이름표까지
-#   2단계(8교시): 변수 AWS_DEPLOY_ROLE_ARN · ASG_NAME (서울 스택 출력의 DeployRoleArn · AsgName) → 그다음 push 부터 서버 교체까지
+#   4단계: 변수 DOCKERHUB_USERNAME, 시크릿 DOCKERHUB_TOKEN → push 하면 테스트 → 이미지 → :prod 이름표까지
+#   7단계: 변수 AWS_DEPLOY_ROLE_ARN · ASG_NAME (서울 스택 출력의 DeployRoleArn · AsgName) → 그다음 push 부터 서버 교체까지
 # 롤백 = Actions 에서 예전 성공 실행을 열어 "Re-run all jobs" (그 커밋의 이미지로 :prod 가 돌아가고 서버가 다시 교체된다)
 name: backend
 
@@ -59,7 +59,7 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - run: docker buildx imagetools create -t ${{ vars.DOCKERHUB_USERNAME }}/wonbank:prod ${{ vars.DOCKERHUB_USERNAME }}/wonbank:${{ github.sha }}
-      # 아래 두 단계는 ASG_NAME 변수를 넣은 뒤(8교시)부터 돈다. 그 전에는 "건너뜀" 으로 보인다
+      # 아래 두 단계는 ASG_NAME 변수를 넣은 뒤(7단계)부터 돈다. 그 전에는 "건너뜀" 으로 보인다
       - if: vars.ASG_NAME != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:

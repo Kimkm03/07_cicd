@@ -7,7 +7,7 @@ Description: 'WONIT-A WON Banking - one stack builds everything (Seoul ap-northe
 #     ③ GitHub Actions 로 이미지 <도커허브ID>/wonbank:prod 를 한 번 만들어 둔다 (없으면 앱 서버가 계속 unhealthy)
 #   만들 때 "IAM 리소스를 만들 수 있음" 확인란에 체크 (역할 2개를 만든다). 다 되기까지 15~20분 (RDS · CloudFront 가 오래 걸린다)
 #   🚨 DB 암호 · JWT 비밀키 · Grafana 비밀번호는 UserData 에 들어간다 → EC2 콘솔에서 UserData 를 열면 보인다 (수업용 선택)
-# 나중에 바꿀 때: 스택 "업데이트" → 기존 템플릿 사용 → 값만 바꾼다 (예: Day 7 DbPoolSize · RequestsPerTargetPerMinute)
+# 나중에 바꿀 때: 스택 "업데이트" → 기존 템플릿 사용 → 값만 바꾼다 (예: DbPoolSize · RequestsPerTargetPerMinute · MinServers/MaxServers)
 # 지울 때: S3 버킷 wonit-a-<이름>-web 을 먼저 비운다 → 이 스택 삭제 → 버지니아의 인증서 스택 삭제
 # 콘솔에 보이는 글자(설명 · 출력)는 한글이 깨지지 않게 영어로 적는다. 한글은 # 주석에만
 
@@ -72,7 +72,7 @@ Parameters:
     Default: 10
     MinValue: 1
     MaxValue: 50
-    Description: 'DB connection pool size per app server (Day 7 experiment: 2)'
+    Description: 'DB connection pool size per app server (step 11 experiment: 2)'
   DbUsername:
     Type: String
     Default: 'admin'
@@ -721,7 +721,7 @@ Resources:
       Tags:
         - { Key: Name, Value: !Sub 'wonit-a-${YourName}-prd-bastion-eip' }
 
-  # Day 7 부하 테스트: 모니터링 EC2 에서 ALB 주소로 k6 를 건다. 인터넷 경계형 ALB 에는 EC2 의 공인 IP 로 보이므로 IP 로 허용
+  # 10단계 부하 테스트: 모니터링 EC2 에서 ALB 주소로 k6 를 건다. 인터넷 경계형 ALB 에는 EC2 의 공인 IP 로 보이므로 IP 로 허용
   AlbIngressFromMonitoring:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -877,7 +877,7 @@ Resources:
 
 Outputs:
   SiteUrl:
-    Description: '1) My site (screen files arrive in Day 6). API test: https://<domain>/api/...'
+    Description: '1) My site (screen files arrive at step 8). API test: https://<domain>/api/...'
     Value: !Sub 'https://${DomainName}'
   AsgName:
     Description: 'GitHub variable ASG_NAME'
@@ -904,7 +904,7 @@ Outputs:
     Description: 'SSH to an app server through the bastion (private IP from EC2 console)'
     Value: !Sub 'ssh -i ${KeyName}.pem -o ProxyCommand="ssh -i ${KeyName}.pem -W %h:%p ubuntu@${BastionEIP}" ubuntu@<app private IP>'
   MonitoringSsh:
-    Description: 'SSH to the monitoring EC2 through the bastion'
+    Description: 'SSH to the monitoring EC2 through the bastion (port 22 blocked? In CloudShell: bash load/cloudshell-ssh.sh <YourName>)'
     Value: !Sub 'ssh -i ${KeyName}.pem -o ProxyCommand="ssh -i ${KeyName}.pem -W %h:%p ubuntu@${BastionEIP}" ubuntu@${MonInstance.PrivateIp}'
   SwaggerTunnel:
     Description: '(Optional) Swagger: run this, then open http://localhost:8080/swagger-ui.html'

@@ -50,6 +50,17 @@ flowchart TD
 
 스택이 서 있는 동안 1명 **시간당 약 0.25달러(약 350원)** 입니다. NAT 게이트웨이 · ALB · EC2 3대(앱 서버 · 모니터링 t3.small, Bastion t3.micro) · RDS 가 대부분이고, S3 · CloudFront 는 수업 사용량이면 거의 0원입니다. **수업이 끝나면 12번대로 꼭 지웁니다.**
 
+| 항목 | 시간당 | 비중 |
+|---|---|---|
+| NAT 게이트웨이 | 0.059달러 | 약 25% |
+| 앱 서버 · 모니터링 서버 (t3.small 2대) | 0.052달러 | 약 20% |
+| RDS db.t3.micro | 약 0.026달러 | 약 10% |
+| 공인 IP 5개 (NAT · 모니터링 · Bastion · ALB 2) | 0.025달러 | 약 10% |
+| ALB | 0.0225달러 | 약 10% |
+| Bastion t3.micro | 0.013달러 | 약 5% |
+
+> 💡 **가장 크게 줄이는 방법은 켜 두는 시간**입니다. 1~4단계(키 페어 · 도메인 · 인증서 · GitHub)는 서울 스택이 없어도 되니 미리 해 두고, 서울 스택은 수업 날 만들고 그날 12단계로 지웁니다. 부하 테스트(10단계)의 추가 서버는 부하가 끝나고 약 5분 뒤 저절로 줄어 몇십 원입니다.
+
 ---
 
 ## 1. 먼저 알기: 큰 그림
@@ -237,7 +248,21 @@ flowchart LR
    | 키 페어 유형 | RSA |
    | 프라이빗 키 파일 형식 | `.pem` |
 
+   ![오른쪽 위 리전 메뉴에서 아시아 태평양(서울) ap-northeast-2 를 고릅니다](images/aws/g52-region-menu.png)
+   ▲ 오른쪽 위 리전 메뉴에서 **아시아 태평양(서울) ap-northeast-2** 를 고릅니다
+
+   ![위쪽 검색창에 서비스 이름(예: CloudFormation)을 치면 바로 갑니다](images/aws/g51-console-search.png)
+   ▲ 위쪽 검색창에 서비스 이름(예: `CloudFormation`)을 치면 바로 갑니다
+
+   ![키 페어 생성: 이름 wonit-a-<이름>-key · RSA · .pem → 키 페어 생성](images/aws/g01-keypair-create.png)
+   ▲ 키 페어 생성: 이름 `wonit-a-<이름>-key` · RSA · `.pem` → **키 페어 생성**
+
+
 2. **키 페어 생성** → `wonit-a-<이름>-key.pem` 파일이 내려받아집니다.
+
+   ![만든 키가 목록에 보입니다 (검색칸에 내 이름을 넣어 내 것만 봅니다)](images/aws/g02-keypair-list.png)
+   ▲ 만든 키가 목록에 보입니다 (검색칸에 내 이름을 넣어 내 것만 봅니다)
+
 3. **내 PC (Git Bash)** → 열쇠를 `~/.ssh` 에 두고 나만 읽게 합니다.
    ```bash
    mkdir -p ~/.ssh && mv ~/Downloads/wonit-a-<이름>-key.pem ~/.ssh/ && chmod 400 ~/.ssh/wonit-a-<이름>-key.pem
@@ -250,8 +275,16 @@ flowchart LR
 ### 2단계. 내 도메인
 
 1. **Route 53 → 호스팅 영역 → 호스팅 영역 생성** → 도메인 이름 `<이름>.woncare.shop`, **퍼블릭 호스팅 영역** → 생성
+
+   ![호스팅 영역 생성: 도메인 이름 <이름>.woncare.shop · 퍼블릭 호스팅 영역](images/aws/g03-r53-zone-create.png)
+   ▲ 호스팅 영역 생성: 도메인 이름 `<이름>.woncare.shop` · **퍼블릭 호스팅 영역**
+
 2. 만든 영역의 **NS 레코드 4줄**(`ns-….awsdns-….org` 등)을 복사해, 수업 때 안내하는 **발급 사이트**에 하위 도메인 `<이름>` 과 함께 등록합니다.
 3. 영역 상세의 **호스팅 영역 ID**(`Z` 로 시작)를 메모합니다.
+
+   ![호스팅 영역 세부 정보 를 펼치면 호스팅 영역 ID(Z…)와 이름 서버 4줄이 한 화면에 보입니다](images/aws/g04-r53-ns-zoneid.png)
+   ▲ **호스팅 영역 세부 정보** 를 펼치면 호스팅 영역 ID(`Z…`)와 이름 서버 4줄이 한 화면에 보입니다
+
 4. **내 PC** → NS 4줄이 나오면 연결된 것입니다 (몇 분 걸릴 수 있음).
    ```bash
    nslookup -type=NS <이름>.woncare.shop
@@ -265,7 +298,15 @@ flowchart LR
 
 1. 맨 위 첨부(또는 `WONIT-A/07_cicd` 저장소의 `infra/`)에서 `wonit-a-cert.yaml` · `wonit-a-aws.yaml` 을 내려받아 둡니다. 저장소 전체는 4단계에서 fork 해서 받습니다.
 2. **콘솔 오른쪽 위 리전 → 미국 동부(버지니아 북부) us-east-1**
+
+   ![인증서 스택만 리전을 미국 동부(버지니아 북부) us-east-1 로 바꿉니다](images/aws/g06-region-virginia.png)
+   ▲ 인증서 스택만 리전을 **미국 동부(버지니아 북부) us-east-1** 로 바꿉니다
+
 3. **CloudFormation → 스택 → 스택 생성 → 기존 템플릿 선택** → **템플릿 파일 업로드** → `infra/wonit-a-cert.yaml` → 다음
+
+   ![스택 생성: 기존 템플릿 선택 → 템플릿 파일 업로드 → wonit-a-cert.yaml](images/aws/g07-cfn-upload.png)
+   ▲ 스택 생성: **기존 템플릿 선택 → 템플릿 파일 업로드** → `wonit-a-cert.yaml`
+
 4. 채우기:
 
    | 칸 | 값 |
@@ -275,8 +316,20 @@ flowchart LR
    | `DomainName` | `<이름>.woncare.shop` |
    | `HostedZoneId` | 2단계의 `Z…` |
 
+   ![스택 이름과 파라미터 3칸 (DomainName · HostedZoneId · YourName)](images/aws/g08-cert-params.png)
+   ▲ 스택 이름과 파라미터 3칸 (DomainName · HostedZoneId · YourName)
+
+
 5. 다음 → 다음 → **전송** → 잠시 기다리면 **CREATE_COMPLETE**.
+
+   ![스택 정보의 상태가 CREATE_COMPLETE (발급까지 약 9분)](images/aws/g09a-cert-complete.png)
+   ▲ 스택 정보의 상태가 **CREATE_COMPLETE** (발급까지 약 9분)
+
 6. **출력** 탭의 `CertificateArn`(`arn:aws:acm:us-east-1:…`)을 메모합니다.
+
+   ![출력 탭의 CertificateArn 값을 메모합니다](images/aws/g09b-cert-output.png)
+   ▲ **출력** 탭의 `CertificateArn` 값을 메모합니다
+
 7. **리전을 서울로 되돌립니다.**
 
 **⚠️ 틀리기 쉬운 곳**
@@ -295,14 +348,33 @@ flowchart LR
 ```
 
 1. **GitHub → `WONIT-A/07_cicd` → Fork → Create fork** (Actions 는 내 저장소에서 돌기 때문입니다). workflow 두 개(`.github/workflows/backend.yml` · `frontend.yml`)는 이미 들어 있습니다.
+
+   ![WONIT-A/07_cicd → Fork: Owner 는 내 아이디, 이름은 그대로 → Create fork](images/aws/g10-gh-fork.png)
+   ▲ `WONIT-A/07_cicd` → Fork: Owner 는 내 아이디, 이름은 그대로 → **Create fork**
+
 2. **내 fork → Actions 탭** → **I understand my workflows, go ahead and enable them** 버튼을 누릅니다 (fork 한 저장소는 workflow 가 꺼진 채로 시작합니다).
+
+   ![fork 한 저장소의 Actions 탭 → I understand my workflows, go ahead and enable them](images/aws/g11-gh-actions-enable.png)
+   ▲ fork 한 저장소의 **Actions** 탭 → **I understand my workflows, go ahead and enable them**
+
 3. **Docker Hub → 오른쪽 위 프로필 → Account settings → 왼쪽 Personal access tokens → Generate new token** → 설명(예: `wonit-a-<이름>-github-actions`), 권한 **Repo Read & Write** → **Generate** → 토큰을 복사합니다 (창을 닫으면 다시 볼 수 없습니다).
+
+   ![Docker Hub → Personal access tokens → 권한 Repo Read & Write → Generate](images/aws/g12-dockerhub-token.png)
+   ▲ Docker Hub → Personal access tokens → 권한 **Repo Read & Write** → **Generate**
+
 4. **내 fork → Settings → Secrets and variables → Actions**
 
    | 종류 | Name | Value |
    |---|---|---|
    | Variables | `DOCKERHUB_USERNAME` | 내 Docker Hub 아이디 |
    | Secrets | `DOCKERHUB_TOKEN` | 3번 토큰 |
+
+   ![Variables 탭 → DOCKERHUB_USERNAME](images/aws/g13a-gh-variables.png)
+   ▲ **Variables** 탭 → `DOCKERHUB_USERNAME`
+
+   ![Secrets 탭 → DOCKERHUB_TOKEN (값은 다시 보이지 않습니다)](images/aws/g13b-gh-secrets.png)
+   ▲ **Secrets** 탭 → `DOCKERHUB_TOKEN` (값은 다시 보이지 않습니다)
+
 
 5. **내 PC (Git Bash)** → 내 fork 를 받고, `src/main/java/com/example/wonit/common/WebConfig.java` 의 한 줄에서 `myname` 을 **내 이름**으로 바꿉니다.
    ```bash
@@ -312,13 +384,28 @@ flowchart LR
    .allowedOrigins("http://localhost:5173", "https://myname.woncare.shop")   // myname → <이름>
    ```
    > 💡 화면과 API 는 같은 주소지만, 서버에는 CloudFront → ALB 를 거쳐 "다른 주소에서 온 요청" 으로 보입니다. 이 목록에 내 주소가 없으면 로그인 같은 `POST` 가 `403 Invalid CORS request` 입니다.
+
+   ![WebConfig.java: allowedOrigins 에 내 도메인 https://<이름>.woncare.shop](images/aws/g14-webconfig-line.png)
+   ▲ `WebConfig.java`: `allowedOrigins` 에 내 도메인 `https://<이름>.woncare.shop`
+
 6. **내 PC (Git Bash)** → 내 fork 의 `main` 으로 올립니다. 이 push 가 첫 backend 실행을 부릅니다.
    ```bash
    git add -A && git commit -m "feat: 내 도메인"
    git push origin main
    ```
 7. **내 fork → Actions → backend** 가 `test → build → deploy` 로 초록이 됩니다. deploy 안의 AWS 두 단계는 아직 **건너뜀**(회색)이 정상입니다. frontend 는 아직 **건너뜀**입니다.
+
+   ![backend 실행: test → build → deploy 가 모두 초록, Success](images/aws/g15a-actions-backend-green.png)
+   ▲ backend 실행: `test → build → deploy` 가 모두 초록, **Success**
+
+   ![아직 AWS 변수가 없어 deploy 안의 AWS 두 단계는 건너뜁니다 (정상)](images/aws/g15b-actions-deploy-skipped.png)
+   ▲ 아직 AWS 변수가 없어 deploy 안의 AWS 두 단계는 건너뜁니다 (정상)
+
 8. **Docker Hub → 내 저장소 `wonbank`** 에 이름표 `prod` 와 커밋 번호가 있는지 확인합니다.
+
+   ![Docker Hub wonbank → Tags: prod 와 커밋 번호 이름표](images/aws/g16-dockerhub-prod.png)
+   ▲ Docker Hub `wonbank` → Tags: `prod` 와 커밋 번호 이름표
+
 
 **`ci/backend.yml` 이 하는 일**
 
@@ -339,6 +426,16 @@ flowchart LR
 1. **준비물 확인**: 키 페어(1) · `Z…`(2) · `CertificateArn`(3) · Docker Hub 의 `:prod`(4) · 내 fork 이름(`아이디/07_cicd`)
 2. **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 있는지 **확인만** 합니다 (계정에 하나만 있으면 모두 같이 씁니다).
    - 없으면: **공급자 추가 → OpenID Connect**, 공급자 URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com` → **공급자 추가**. URL 칸에는 `https://` 가 미리 들어 있을 수 있으니 두 번 들어가지 않게 봅니다.
+
+   ![IAM → ID 제공업체: 비어 있으면(0) 아래처럼 한 번만 만듭니다](images/aws/g17a-iam-oidc-empty.png)
+   ▲ IAM → **ID 제공업체**: 비어 있으면(0) 아래처럼 한 번만 만듭니다
+
+   ![공급자 추가: OpenID Connect · URL https://token.actions.githubusercontent.com · 대상 sts.amazonaws.com](images/aws/g17b-iam-oidc-create.png)
+   ▲ 공급자 추가: **OpenID Connect** · URL `https://token.actions.githubusercontent.com` · 대상 `sts.amazonaws.com`
+
+   ![목록에 token.actions.githubusercontent.com 이 있으면 끝](images/aws/g17-iam-oidc-provider.png)
+   ▲ 목록에 `token.actions.githubusercontent.com` 이 있으면 끝
+
 3. 리전 **서울** 확인 → **CloudFormation → 스택 생성 → 기존 템플릿 선택 → 템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음
 4. 스택 이름 `wonit-a-<이름>-stack`, 파라미터:
 
@@ -364,8 +461,29 @@ flowchart LR
    | `CloudFrontPrefixListId` | 기본값 그대로 | "CloudFront 가 쓰는 주소 모음" ID |
    | `GrafanaPassword` | 기본값 `Wooriwon1!` | 그대로 (Grafana 로그인 비밀번호) |
 
+   ![1. Basic: YourName · KeyName · MyIpCidr(기본값 그대로) · GitHubRepo](images/aws/g18a-stack-params-basic.png)
+   ▲ 1. Basic: YourName · KeyName · MyIpCidr(기본값 그대로) · GitHubRepo
+
+   ![2. App: DockerImage <Docker Hub 아이디>/wonbank:prod · 비밀값 칸은 기본값 그대로](images/aws/g18b-stack-params-app.png)
+   ▲ 2. App: DockerImage `<Docker Hub 아이디>/wonbank:prod` · 비밀값 칸은 기본값 그대로
+
+   ![5. Web · 6. Monitoring: DomainName · HostedZoneId · CertificateArn · CloudFrontPrefixListId · GrafanaPassword](images/aws/g19-stack-params-2.png)
+   ▲ 5. Web · 6. Monitoring: DomainName · HostedZoneId · CertificateArn · CloudFrontPrefixListId · GrafanaPassword
+
+   ![(참고) VPC → 관리형 접두사 목록: com.amazonaws.global.cloudfront.origin-facing 의 IPv4 ID 가 CloudFrontPrefixListId 기본값입니다](images/aws/g57-prefix-list.png)
+   ▲ (참고) VPC → 관리형 접두사 목록: `com.amazonaws.global.cloudfront.origin-facing` 의 **IPv4** ID 가 `CloudFrontPrefixListId` 기본값입니다
+
+
 5. 다음 → **스택 옵션 구성** 화면: 태그 **새 태그 추가** → `Owner` = `<이름>`, 같은 화면 맨 아래 **기능** 의 **AWS CloudFormation에서 사용자 지정 이름으로 IAM 리소스를 생성할 수 있음을 승인합니다** 체크 → 다음 → 검토 화면에서 **전송**
+
+   ![스택 옵션 구성 화면 맨 아래 기능 의 IAM 확인란](images/aws/g20-stack-iam-ack.png)
+   ▲ **스택 옵션 구성** 화면 맨 아래 **기능** 의 IAM 확인란
+
 6. 기다리는 동안 **이벤트** 탭을 새로고침하며 봅니다. 네트워크 → 보안 그룹 → RDS → ALB … 순서로 `CREATE_COMPLETE` 가 늘어납니다. RDS 와 CloudFront 가 가장 오래 걸립니다.
+
+   ![이벤트 탭: CREATE_IN_PROGRESS → CREATE_COMPLETE 가 차례로 쌓입니다 (약 13분)](images/aws/g21-stack-events.png)
+   ▲ **이벤트** 탭: `CREATE_IN_PROGRESS` → `CREATE_COMPLETE` 가 차례로 쌓입니다 (약 13분)
+
 
 **⚠️ 틀리기 쉬운 곳**
 - 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/숫자` 모양, `CertificateArn` 은 us-east-1).
@@ -402,6 +520,16 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
    | `BastionIp` · `AppSsh` · `MonitoringSsh` | SSH 명령 (Bastion 을 거쳐 들어감) |
    | `SwaggerTunnel` | (선택) Swagger 를 내 PC 에서 보는 터널 명령 |
 
+   ![출력 탭 (12줄). 다음 단계에서 계속 씁니다](images/aws/g22a-stack-outputs.png)
+   ▲ **출력** 탭 (12줄). 다음 단계에서 계속 씁니다
+
+   ![GitHub 변수로 넣을 값: CloudFrontDistributionId · DeployRoleArn, 상황판 주소 GrafanaUrl](images/aws/g22b-stack-outputs.png)
+   ▲ GitHub 변수로 넣을 값: `CloudFrontDistributionId` · `DeployRoleArn`, 상황판 주소 `GrafanaUrl`
+
+   ![SiteUrl(내 사이트) · WebBucketName(GitHub 변수 WEB_BUCKET)](images/aws/g22c-stack-outputs.png)
+   ▲ `SiteUrl`(내 사이트) · `WebBucketName`(GitHub 변수 `WEB_BUCKET`)
+
+
 2. **내 PC (Git Bash)** → 회원가입 → 로그인. 응답에 `accessToken` 이 있으면 서버 · DB · CloudFront · ALB 가 모두 연결된 것입니다.
    ```bash
    curl -s -X POST https://<이름>.woncare.shop/api/auth/signup -H 'Content-Type: application/json' -d '{"loginId":"<아이디>","password":"<암호>","name":"<이름>"}'
@@ -420,6 +548,73 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
    | **RDS → 데이터베이스** | `…-prd-db`, 퍼블릭 액세스 **아니요** |
    | **CloudFront → 내 배포 → 동작** | `/api/*` → ALB, 기본(`*`) → S3 |
 
+   <details><summary>📸 둘러보기 화면 (21장)</summary>
+
+   ![CloudFormation 스택 목록: wonit-a-<이름>-stack 이 CREATE_COMPLETE](images/aws/g53-cfn-stack-list.png)
+   ▲ CloudFormation 스택 목록: `wonit-a-<이름>-stack` 이 CREATE_COMPLETE
+
+   ![리소스 탭: 논리적 ID(템플릿 속 이름) ↔ 물리적 ID(실제 AWS 이름)](images/aws/g54-cfn-resources-tab.png)
+   ▲ 리소스 탭: 논리적 ID(템플릿 속 이름) ↔ 물리적 ID(실제 AWS 이름)
+
+   ![템플릿 탭: # 06. Auto Scaling 구역 (콘솔은 한글 주석을 ?? 로 보여 줍니다)](images/aws/g55-cfn-template-tab.png)
+   ▲ 템플릿 탭: `# 06. Auto Scaling` 구역 (콘솔은 한글 주석을 `??` 로 보여 줍니다)
+
+   ![파라미터 탭: 비밀값(NoEcho)은  로만 보입니다](images/aws/g56-cfn-parameters-tab.png)
+   ▲ 파라미터 탭: 비밀값(NoEcho)은 `****` 로만 보입니다
+
+   ![VPC → 리소스 맵: 서브넷 4개 (2a · 2c 에 공개 · 사설 하나씩)](images/aws/g24a-vpc-resource-map.png)
+   ▲ VPC → 리소스 맵: 서브넷 4개 (2a · 2c 에 공개 · 사설 하나씩)
+
+   ![리소스 맵: 라우팅 테이블 3개 · 네트워크 연결(인터넷 게이트웨이 · NAT)](images/aws/g24b-vpc-resource-map.png)
+   ▲ 리소스 맵: 라우팅 테이블 3개 · 네트워크 연결(인터넷 게이트웨이 · NAT)
+
+   ![보안 그룹 5개 (web · app · db · bastion · mon)](images/aws/g25a-sg-list.png)
+   ▲ 보안 그룹 5개 (`web` · `app` · `db` · `bastion` · `mon`)
+
+   ![web-sg 인바운드: 80 ← CloudFront 접두사 목록 + 모니터링 EC2 (k6)](images/aws/g25b-sg-web-inbound.png)
+   ▲ web-sg 인바운드: 80 ← CloudFront 접두사 목록 + 모니터링 EC2 (k6)
+
+   ![EC2 인스턴스: app · mon · bastion (app 은 공인 IP 없음)](images/aws/g58-ec2-instances.png)
+   ▲ EC2 인스턴스: app · mon · bastion (app 은 공인 IP 없음)
+
+   ![대상 그룹 → 대상: 앱 서버가 healthy](images/aws/g26-tg-healthy.png)
+   ▲ 대상 그룹 → 대상: 앱 서버가 **healthy**
+
+   ![대상 그룹 상태 검사: 경로 /actuator/health, 정상 임계값 2, 간격 15초](images/aws/g62-tg-healthcheck.png)
+   ▲ 대상 그룹 상태 검사: 경로 `/actuator/health`, 정상 임계값 2, 간격 15초
+
+   ![Auto Scaling 그룹: 원하는 용량 · 크기 조정 한도](images/aws/g27a-asg-capacity.png)
+   ▲ Auto Scaling 그룹: 원하는 용량 · 크기 조정 한도
+
+   ![Auto Scaling 그룹 네트워크: 사설 서브넷 2곳(2a · 2c)](images/aws/g27b-asg-network.png)
+   ▲ Auto Scaling 그룹 네트워크: 사설 서브넷 2곳(2a · 2c)
+
+   ![Automatic scaling 탭: 대상 추적 정책 (ALB 요청 수 600)](images/aws/g63-asg-scaling-policy.png)
+   ▲ **Automatic scaling** 탭: 대상 추적 정책 (ALB 요청 수 600)
+
+   ![상태 확인 유예 300초 · 인스턴스 유지 관리 정책(새 서버 먼저 100/200)](images/aws/g64-asg-maintenance.png)
+   ▲ 상태 확인 유예 300초 · 인스턴스 유지 관리 정책(새 서버 먼저 100/200)
+
+   ![CloudFront → 동작: /api/ → ALB, 기본값() → S3](images/aws/g28-cf-behaviors.png)
+   ▲ CloudFront → 동작: `/api/*` → ALB, 기본값(*) → S3
+
+   ![CloudFront → 원본: s3-web · alb-api](images/aws/g67-cf-origins.png)
+   ▲ CloudFront → 원본: `s3-web` · `alb-api`
+
+   ![CloudFront 일반: 대체 도메인 · 내 인증서 · 기본 루트 객체 index.html](images/aws/g68-cf-general.png)
+   ▲ CloudFront 일반: 대체 도메인 · 내 인증서 · 기본 루트 객체 `index.html`
+
+   ![S3 → 권한: 모든 퍼블릭 액세스 차단 켜짐](images/aws/g66a-s3-block-public.png)
+   ▲ S3 → 권한: **모든 퍼블릭 액세스 차단** 켜짐
+
+   ![버킷 정책: CloudFront(OAC)만 읽기 허용](images/aws/g66b-s3-bucket-policy.png)
+   ▲ 버킷 정책: CloudFront(OAC)만 읽기 허용
+
+   ![IAM 배포 역할의 신뢰 정책: GitHub OIDC 공급자 + sub 조건](images/aws/g71-iam-deploy-trust.png)
+   ▲ IAM 배포 역할의 신뢰 정책: GitHub OIDC 공급자 + `sub` 조건
+
+   </details>
+
 5. (자가 치유 보기) **EC2 → 인스턴스** 에서 `…-prd-app` 하나를 **종료** → 몇 분 뒤 **Auto Scaling 그룹 → 활동** 에 새 서버가 생기고, 대상 그룹에 다시 healthy.
 
 **⚠️ 틀리기 쉬운 곳**
@@ -435,12 +630,24 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
    | `AWS_DEPLOY_ROLE_ARN` | 출력 `DeployRoleArn` |
    | `ASG_NAME` | 출력 `AsgName` |
 
+   ![Variables 에 ASG_NAME · AWS_DEPLOY_ROLE_ARN 추가](images/aws/g30-gh-vars-deploy.png)
+   ▲ Variables 에 `ASG_NAME` · `AWS_DEPLOY_ROLE_ARN` 추가
+
+
 2. **내 PC** → 서버 코드 한 곳을 고쳐 push 합니다 (예: 아무 클래스의 주석 한 줄).
    ```bash
    git add -A && git commit -m "chore: 배포 연습" && git push origin main
    ```
 3. **Actions → backend** 의 deploy 에서 AWS 두 단계까지 초록이 됩니다.
+
+   ![deploy 의 AWS 두 단계(역할 받기 · 인스턴스 새로 고침 시작)까지 초록](images/aws/g31-actions-deploy-green.png)
+   ▲ deploy 의 AWS 두 단계(역할 받기 · 인스턴스 새로 고침 시작)까지 초록
+
 4. **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침** 탭에서 진행률을 봅니다. 새 서버가 먼저 뜨고 healthy 가 된 뒤 옛 서버가 내려갑니다 (끊김 없이 교체).
+
+   ![Auto Scaling 그룹 → 인스턴스 새로 고침: 진행률과 상태](images/aws/g32-asg-instance-refresh.png)
+   ▲ Auto Scaling 그룹 → **인스턴스 새로 고침**: 진행률과 상태
+
 
 > 💡 **비밀번호 없이 어떻게 AWS 에 들어가나요?** 스택이 만든 배포 역할에 "내 저장소의 main 에서 온 GitHub Actions 만 이 역할을 잠깐 쓸 수 있다" 고 적혀 있습니다(OIDC). GitHub 에는 AWS 키가 하나도 저장되지 않습니다.
 
@@ -458,7 +665,15 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
    | `CF_DISTRIBUTION_ID` | 출력 `CloudFrontDistributionId` |
 
 2. **내 fork → Actions → 왼쪽 frontend → Run workflow** → `main` → **Run workflow** (화면 코드가 바뀐 push 에서만 저절로 돌기 때문에 처음 한 번은 손으로)
-3. 초록이 되면 **S3 → `wonit-a-<이름>-web` → 객체** 맨 위에 `index.html` · `assets/` 가 있습니다.
+
+   ![Actions → 왼쪽 frontend → Run workflow → main → Run workflow](images/aws/g33-actions-run-frontend.png)
+   ▲ Actions → 왼쪽 **frontend** → **Run workflow** → `main` → **Run workflow**
+
+3. 초록이 되면 **S3 → `wonit-a-<이름>-web` → 객체** 에 (폴더 안이 아니라 바로) `index.html` · `assets/` 가 있습니다.
+
+   ![S3 wonit-a-<이름>-web → 객체: assets/ 와 index.html (정렬 때문에 index.html 은 아래쪽에 보일 수 있습니다)](images/aws/g34-s3-objects.png)
+   ▲ S3 `wonit-a-<이름>-web` → 객체: `assets/` 와 `index.html` (정렬 때문에 `index.html` 은 아래쪽에 보일 수 있습니다)
+
 4. 브라우저 `https://<이름>.woncare.shop` → 회원가입 · 로그인 → 입금 → 이체 → AI 도우미에 질문 하나.
 5. **화면 고쳐 보기**: `frontend/src/components/Header.jsx` 의 `님, 안녕하세요` 를 `님, 환영합니다` 로 바꿔 push → **frontend 만** 돌고 backend 는 안 돕니다 → 새로고침(`Ctrl+Shift+R`).
 
@@ -496,19 +711,53 @@ flowchart LR
 **Prometheus · Grafana 는 스택이 이미 띄워 두었습니다** (모니터링 EC2 가 켜지면서 설정 파일을 쓰고 `docker compose up`).
 
 1. **브라우저 → 출력 `GrafanaUrl`** (`http://<모니터링 IP>:3000`) → 사용자 `admin`, 비밀번호 `Wooriwon1!`
+
+   ![Grafana 로그인: 사용자 admin · 비밀번호 Wooriwon1!](images/aws/g36-grafana-login.png)
+   ▲ Grafana 로그인: 사용자 `admin` · 비밀번호 `Wooriwon1!`
+
 2. **Connections → Data sources → Add data source → Prometheus** → URL `http://prometheus:9090` → **Save & test** → 성공
    > ⚠️ `localhost` 가 아닙니다. Grafana 컨테이너 안의 `localhost` 는 Grafana 자신이라, 같은 묶음의 이웃 컨테이너는 이름(`prometheus`)으로 부릅니다.
+
+   ![Prometheus server URL http://prometheus:9090](images/aws/g37a-grafana-ds-prom-url.png)
+   ▲ Prometheus server URL `http://prometheus:9090`
+
+   ![Save & test → Successfully queried the Prometheus API.](images/aws/g37b-grafana-ds-prom-ok.png)
+   ▲ **Save & test** → `Successfully queried the Prometheus API.`
+
 3. **Add data source → CloudWatch** → Authentication Provider **AWS SDK Default**, Default Region **ap-northeast-2** → **Save & test** → 성공
+
+   ![CloudWatch: Authentication Provider AWS SDK Default(처음부터 골라져 있음) · Default Region ap-northeast-2](images/aws/g38a-grafana-ds-cw-settings.png)
+   ▲ CloudWatch: Authentication Provider **AWS SDK Default**(처음부터 골라져 있음) · Default Region `ap-northeast-2`
+
+   ![Save & test → metrics API · logs API 둘 다 성공](images/aws/g38b-grafana-ds-cw-ok.png)
+   ▲ **Save & test** → metrics API · logs API 둘 다 성공
+
 4. **Explore** → 데이터 소스 Prometheus → 쿼리 `up` → 앱 서버 수만큼 값 `1` 이 보이면 Prometheus 가 서버를 찾아 숫자를 가져오고 있는 것입니다.
+
+   ![Explore 에서 up: 서버마다 값 1. (이 그림은 인스턴스 새로 고침 중이라 옛 서버가 0 으로 내려가고 새 서버가 1 로 올라옴)](images/aws/g39-grafana-explore-up.png)
+   ▲ Explore 에서 `up`: 서버마다 값 1. (이 그림은 인스턴스 새로 고침 중이라 옛 서버가 0 으로 내려가고 새 서버가 1 로 올라옴)
+
 5. **Dashboards → New → Import** → ID `19004` → Load → 데이터 소스 Prometheus → Import → 위쪽 **Application** 에서 `wonit`
+
+   ![대시보드 19004 (Spring Boot 3.x Statistics): 위쪽 Application wonit, Instance 는 지금 떠 있는 서버로](images/aws/g40-grafana-19004.png)
+   ▲ 대시보드 19004 (**Spring Boot 3.x Statistics**): 위쪽 **Application** `wonit`, **Instance** 는 지금 떠 있는 서버로
+
 6. **내 패널 만들기**: **Dashboards → New dashboard → Add visualization** → Prometheus → 쿼리(Code)
    ```
    sum(rate(http_server_requests_seconds_count{uri="/api/transfers"}[1m]))
    ```
    제목 `초당 이체 건수` → 저장. 사이트에서 이체를 몇 번 하면 선이 올라갑니다.
+
+   ![내 패널 초당 이체 건수: 쿼리와 그래프 (사이트에서 이체를 몇 번 하면 선이 올라갑니다)](images/aws/g41-grafana-my-panel.png)
+   ▲ 내 패널 `초당 이체 건수`: 쿼리와 그래프 (사이트에서 이체를 몇 번 하면 선이 올라갑니다)
+
 7. (선택) 같은 대시보드에 CloudWatch 패널: Namespace `AWS/ApplicationELB`, Metric `RequestCount`, Statistic **Sum**, LoadBalancer 는 목록에서 `…-prd-alb` → 제목 `ALB 요청 수`
 8. **전체 상황판은 이미 들어 있습니다**: **Dashboards → WONIT → 우리WON 전체 상황판**. 19004 는 서버 한 대씩 보지만, 이 판은 서버를 **합쳐서**(합계 · 평균) 봅니다. 서버 수 · 전체 초당 요청 · 평균 응답 시간 · 평균 CPU · 힙 사용률 · DB 연결.
    > 💡 이 판은 내 fork 의 `monitoring/grafana/wonit-overview.json` 입니다. 모니터링 EC2 가 켜질 때, 그리고 5분마다 GitHub 에서 받아 Grafana 가 저절로 읽습니다. JSON 을 고쳐 push 하면 5분 안에 바뀝니다. 위쪽 **데이터 소스** 에서 2번에 만든 Prometheus 를 고릅니다.
+
+   ![Dashboards → WONIT → 우리WON 전체 상황판: 서버를 합쳐 보는 판 (저장소 JSON 에서 자동으로 들어옴)](images/aws/g41b-grafana-overview.png)
+   ▲ **Dashboards → WONIT → 우리WON 전체 상황판**: 서버를 합쳐 보는 판 (저장소 JSON 에서 자동으로 들어옴)
+
 
 <details><summary>📖 숫자 읽는 법</summary>
 
@@ -524,16 +773,26 @@ flowchart LR
 
 > 💡 **k6 로 무엇을 확인하나요?** 가짜 클라이언트를 몰아 보내 ① 응답 시간 · 실패율이 어떻게 변하는지 ② 서버가 정말 저절로 늘어나는지 ③ 늘어난 뒤 다시 버티는지를 숫자로 봅니다 (도구 설명은 3절).
 
-> 💡 **자동 확장 규칙**: 스택이 "서버 1대가 **1분**에 받는 요청이 `600` 을 넘으면 서버를 늘린다" 는 정책(대상 추적)을 달아 두었습니다. 늘리는 데는 몇 분 걸리고(지표 확인 → 새 서버 부팅 → 상태 검사 통과), 줄이는 것은 더 천천히 합니다.
+> 💡 **자동 확장 규칙**: 스택이 "서버 1대가 **1분**에 받는 요청이 `600` 을 넘으면 서버를 늘린다" 는 정책(대상 추적)을 달아 두었습니다. 늘리는 데는 몇 분 걸리고(지표 확인 → 새 서버 부팅 → 상태 검사 통과), 부하가 끝나면 **약 5분** 뒤 최소 대수로 줄어듭니다 (빠른 축소 경보, 아래 4번 표 밑 설명).
 >
-> 실제로 걸어 보면: 부하 시작 후 **약 5분** 뒤 경보가 울립니다 (ALB 지표가 CloudWatch 에 2~3분 늦게 들어오고, 1분 값 3개가 연달아 넘어야 함). 대상 추적은 한 대씩이 아니라 **필요한 만큼 한 번에** 늘립니다 (예: 2 → 5). 6분짜리 부하면 새 서버가 다 뜰 즈음 부하가 끝날 수 있으니 `HOLD=10m` 으로 늘려도 됩니다.
+> 실제로 걸어 보면: 부하 시작 후 **약 5분** 뒤 경보가 울립니다 (ALB 지표가 CloudWatch 에 2~3분 늦게 들어오고, 1분 값 3개가 연달아 넘어야 함). 대상 추적은 한 대씩이 아니라 **필요한 만큼 한 번에** 늘립니다 (예: 2 → 5). 새 서버가 뜨기까지 경보 5분 + 부팅 2~3분이 걸리므로, 늘어난 서버가 부하를 나눠 받는 모습까지 보려면 부하를 **8분**(`HOLD=8m`) 겁니다.
+>
+> **실측 시간표** (서버 1대에서 시작, 50명): 0분 부하 시작 → 5분 경보 → 7분 서버 3대 → 8분 부하 끝 → 13분 빠른 축소 경보 → 14분 1대. 추가 서버 비용은 몇십 원입니다.
 
 1. **내 PC (Git Bash)** → `~/.ssh` 에서 출력 `MonitoringSsh` 명령을 그대로 붙여 넣어 모니터링 EC2 에 들어갑니다 (Bastion 을 거칩니다).
-   > 💡 학원 · 회사 망에서 22번이 막혀 있으면 **CloudShell** 에서 들어갑니다: 키 파일 없이 `aws ec2-instance-connect send-ssh-public-key` 로 Bastion · 모니터링 EC2 에 1분짜리 임시 키를 넣고 같은 ProxyCommand 로 접속합니다.
+   > 💡 학원 · 회사 망에서 22번이 막혀 있으면 **CloudShell**(콘솔 왼쪽 아래 `CloudShell`, 리전 서울)에서 들어갑니다. 키 파일 없이 EC2 Instance Connect 로 Bastion · 모니터링 EC2 에 60초짜리 임시 키를 넣고 Bastion 을 거쳐 접속합니다.
+   > ```bash
+   > git clone https://github.com/<GitHub 아이디>/07_cicd.git
+   > bash 07_cicd/load/cloudshell-ssh.sh <이름>
+   > ```
    ```bash
    cd ~/.ssh
    ssh -i wonit-a-<이름>-key.pem -o ProxyCommand="ssh -i wonit-a-<이름>-key.pem -W %h:%p ubuntu@<BastionIp>" ubuntu@<모니터링 사설 IP>
    ```
+
+   ![모니터링 EC2 에 들어간 모습: 프롬프트가 ubuntu@ip-10-250-… (이 그림은 CloudShell 에서 접속)](images/aws/g42-ssh-monitoring.png)
+   ▲ 모니터링 EC2 에 들어간 모습: 프롬프트가 `ubuntu@ip-10-250-…` (이 그림은 CloudShell 에서 접속)
+
 2. **모니터링 EC2** → 부하 스크립트를 받습니다.
    ```bash
    git clone https://github.com/<GitHub 아이디>/07_cicd.git && cd 07_cicd
@@ -558,9 +817,13 @@ flowchart LR
 
    > 💡 **자동 확장 기준과 이어 보기**: 10명만으로도 초당 약 95건 = 분당 약 5,700건입니다. 서버 2대면 1대에 분당 약 2,850건으로 기준 `600` 을 훌쩍 넘습니다. 짧게 끝나서 서버가 늘지 않았을 뿐, **3분 넘게 이어지면** 경보가 울립니다 (경보는 1분 값 3개가 연달아 넘어야 울림).
    </details>
-4. **50명으로 길게** 걸고, 그동안 Grafana 와 콘솔을 봅니다.
+
+   ![10명 20초 요약: http_req_duration p(95) 66ms · http_req_failed 0%](images/aws/g43-k6-summary.png)
+   ▲ 10명 20초 요약: `http_req_duration` p(95) 66ms · `http_req_failed` 0%
+
+4. **50명으로 8분** 걸고, 그동안 Grafana 전체 상황판과 콘솔을 봅니다.
    ```bash
-   docker run --rm -i -e BASE_URL=http://<AlbDnsName> -e PEAK_VUS=50 -e HOLD=6m grafana/k6 run - < load/transfers.js
+   docker run --rm -i -e BASE_URL=http://<AlbDnsName> -e PEAK_VUS=50 -e HOLD=8m grafana/k6 run - < load/transfers.js
    ```
 
    | 무엇을 | 어디서 |
@@ -590,7 +853,27 @@ flowchart LR
    >
    > 왜 따로 두나요? 대상 추적이 스스로 만드는 축소 경보(`…-AlarmLow`)는 **15분** 동안 조용해야 울려서 수업 시간 안에 줄어드는 것을 보기 어렵습니다. 그래서 대상 추적은 **늘리기만**(`DisableScaleIn: true`) 하고, 줄이기는 3분짜리 경보 + 단계 조정 정책이 합니다. 실무에서는 너무 빨리 줄였다 늘렸다(출렁임) 하지 않도록 축소를 더 느리게 둡니다.
 
+   ![CloudWatch → 경보: TargetTracking-…-AlarmHigh 가 경보 상태 (부하 시작 후 약 5분)](images/aws/g44-cw-alarm-high.png)
+   ▲ CloudWatch → 경보: `TargetTracking-…-AlarmHigh` 가 **경보 상태** (부하 시작 후 약 5분)
+
+   ![Auto Scaling 그룹 → 활동: 원인에 increasing the capacity from 2 to 5 (한 번에 필요한 만큼)](images/aws/g45-asg-scaleout.png)
+   ▲ Auto Scaling 그룹 → 활동: 원인에 `increasing the capacity from 2 to 5` (한 번에 필요한 만큼)
+
+   ![부하 중 전체 상황판: 떠 있는 서버 수 5, 초당 이체 건수 · 서버 수 선이 올라감](images/aws/g46a-grafana-load.png)
+   ▲ 부하 중 전체 상황판: 떠 있는 서버 수 5, 초당 이체 건수 · 서버 수 선이 올라감
+
+   ![평균 응답 시간 약 300ms 그대로, DB 연결 기다리는 요청 약 30 → 병목은 서버 수가 아니라 DB · 락](images/aws/g46b-grafana-load-db.png)
+   ▲ 평균 응답 시간 약 300ms 그대로, DB 연결 **기다리는 요청 약 30** → 병목은 서버 수가 아니라 DB · 락
+
+
 5. 부하가 끝나고 **약 5분**(조용한 3분 + 지표 지연 2분) 지나면 경보 `…-prd-quiet-scale-in` 이 울리고 서버가 최소(`MinServers`)로 줄어듭니다. **EC2 → Auto Scaling 그룹 → 활동** 에 `Terminating` 줄, 전체 상황판 **떠 있는 서버 수** 가 내려갑니다.
+
+   ![부하가 끝나고 약 6분 뒤: quiet-scale-in 경보가 changing the desired capacity from 3 to 1](images/aws/g45c-asg-quiet-scalein.png)
+   ▲ 부하가 끝나고 약 6분 뒤: `quiet-scale-in` 경보가 `changing the desired capacity from 3 to 1`
+
+   ![전체 상황판 서버 수 선: 1 → 2 → 5 → 1](images/aws/g46c-grafana-scalein.png)
+   ▲ 전체 상황판 서버 수 선: 1 → 2 → 5 → 1
+
 
 **⚠️ 틀리기 쉬운 곳**
 - k6 가 연결 실패 → `BASE_URL` 은 도메인이 아니라 **`AlbDnsName`** 입니다 (ALB 문은 CloudFront 와 모니터링 EC2 에게만 열려 있습니다).
@@ -609,6 +892,19 @@ flowchart LR
 | DB 연결 수 실험 (예: 2) | `DbPoolSize` | 시작 템플릿 새 버전만 생깁니다 → **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침 → 시작** 으로 서버를 바꿔야 적용 |
 
 > ⚠️ 비밀값 칸(`JwtSecret` 등)은 업데이트 화면에서 **기존 값 사용** 을 고르면 다시 안 넣어도 됩니다. 콘솔에서 스택이 만든 자원을 직접 바꾸면, 다음 스택 업데이트 때 스택의 값으로 되돌아갈 수 있습니다.
+
+<details><summary>📸 화면으로 보기</summary>
+
+![스택 업데이트: 기존 템플릿 사용 → 바꿀 칸만 고칩니다](images/aws/g47a-stack-update-params.png)
+▲ 스택 업데이트: **기존 템플릿 사용** → 바꿀 칸만 고칩니다
+
+![비밀값 칸은 이전 값 사용 이 체크되어 있어 다시 넣지 않아도 됩니다](images/aws/g47b-stack-update-secret.png)
+▲ 비밀값 칸은 **이전 값 사용** 이 체크되어 있어 다시 넣지 않아도 됩니다
+
+![(콘솔에서 바로) Auto Scaling 그룹 → 그룹 크기 편집: 원하는 2 · 최소 2 · 최대 5. 다음 스택 업데이트 때 템플릿 값으로 돌아갑니다](images/aws/g47c-asg-size-2-5.png)
+▲ (콘솔에서 바로) Auto Scaling 그룹 → 그룹 크기 편집: 원하는 2 · 최소 2 · 최대 5. 다음 스택 업데이트 때 템플릿 값으로 돌아갑니다
+
+</details>
 
 ### 12단계. 정리: 스택 지우기
 

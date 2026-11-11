@@ -1,6 +1,9 @@
 // 이체 부하테스트 (k6): 클라이언트가 "계좌 목록 보기 → 10원 이체" 를 반복하는 모습을 여러 명이 동시에 흉내 낸다
 // 실행 (모니터링 EC2 에서, k6 설치 없이 docker): ALB 주소로 건다 (CloudFront 도메인으로 걸면 막힐 수 있다)
-//   docker run --rm -i -e BASE_URL=http://<ALB DNS 이름> -e PEAK_VUS=50 -e HOLD=60s grafana/k6 run - < load/transfers.js
+//   가볍게:   docker run --rm -i -e BASE_URL=http://<ALB DNS 이름> -e PEAK_VUS=10 -e HOLD=20s grafana/k6 run - < load/transfers.js
+//   자동 확장: docker run --rm -i -e BASE_URL=http://<ALB DNS 이름> -e PEAK_VUS=50 -e HOLD=8m  grafana/k6 run - < load/transfers.js
+//             (경보 약 5분 + 새 서버 2~3분 → 8분이면 늘어난 서버가 부하를 나눠 받는 모습까지 보인다. 끝나고 약 5분 뒤 저절로 줄어든다)
+//   모니터링 EC2 에 SSH 가 막히면 CloudShell 에서: bash load/cloudshell-ssh.sh <이름>
 //   ALB 보안 그룹 80 에 모니터링 EC2 의 탄력적 IP/32 는 스택이 이미 허용해 두었다 (그 밖에는 CloudFront 만)
 //   내 PC 에서 연습: ./gradlew bootRun 후 -e BASE_URL=http://host.docker.internal:8080 --add-host=host.docker.internal:host-gateway
 // 🚨 /api/ai/* 는 넣지 않는다: 요청마다 외부 AI 요금이 나간다

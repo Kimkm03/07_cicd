@@ -231,7 +231,7 @@
 <details><summary>📖 더 알아보기</summary>
 
 - 대상 추적은 온도 조절기와 같습니다. CPU 가 아니라 요청 수를 쓰는 것은 같은 계좌의 락 때문에 요청이 줄 서서 CPU 는 한가한데 응답이 느릴 수 있어서입니다.
-- 1분 단위 값이 목표를 **연속 3분** 넘으면 늘리고, 목표보다 낮은 상태가 약 **15분** 이어지면 줄입니다 (오락가락하지 않게 일부러 천천히).
+- 1분 단위 값이 목표를 **연속 3분** 넘으면 늘립니다(대상 추적). 줄이기는 따로 둔 **빠른 축소 경보**(`…-prd-quiet-scale-in`)가 합니다: 1대당 분당 60 아래가 **3분** 이어지면 최소 대수로 한 번에 줄입니다. 대상 추적 자체의 축소는 15분이 걸려 수업에서는 껐습니다(`DisableScaleIn`).
 
 </details>
 
@@ -243,7 +243,7 @@
 1. 창 네 개: ① ASG **활동** 탭 ② 대상 그룹 **대상** 탭 ③ Grafana (30s) ④ 모니터링 EC2 터미널.
 2. **모니터링 EC2** → 50명을 **6분 이상** 겁니다.
    ```bash
-   docker run --rm -i -e BASE_URL=http://<ALB DNS> -e PEAK_VUS=50 -e HOLD=6m grafana/k6 run - < load/transfers.js
+   docker run --rm -i -e BASE_URL=http://<ALB DNS> -e PEAK_VUS=50 -e HOLD=8m grafana/k6 run - < load/transfers.js
    ```
 3. 아래 순서를 눈으로 따라가며 일어난 시각을 **내 칸에 적습니다.**
 
@@ -264,7 +264,7 @@
    ![Explore 의 up 결과에 서버 줄이 3개(값 1)](images/day7/d7-07-grafana-explore-up-3.png)
 5. 대시보드에서 `HealthyHostCount` 가 늘고 응답 시간이 내려가는 구간을 찾습니다.
    ![HealthyHostCount 가 3 으로 오르고 응답 시간이 내려가는 구간](images/day7/d7-08-grafana-healthy-3.png)
-6. k6 가 끝나도 서버는 **바로 줄지 않습니다** (약 15분 뒤). 수업을 마치려면 **EC2 → Auto Scaling 그룹 → 편집** 에서 **원하는 용량**을 `1` 로 돌립니다. 활동 탭에 `Terminating EC2 instance` 줄이 생깁니다.
+6. k6 가 끝나고 **약 5분** 뒤 빠른 축소 경보가 울려 서버가 최소 대수로 줄어듭니다. 활동 탭에 `quiet-scale-in … changing the desired capacity from 3 to 1` 과 `Terminating EC2 instance` 줄이 생깁니다.
    ![ASG 편집 화면에서 원하는 용량이 1 로 입력된 모습](images/day7/d7-09-asg-desired.png)
 
 **✅ 되었으면**: 서버가 1 → 2 → 3대로 늘었고, 부하를 끈 뒤 원하는 용량을 1 로 돌려 한 대만 남았습니다.

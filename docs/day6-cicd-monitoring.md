@@ -198,7 +198,7 @@ frontend/ 를 고쳐 push ─▶ runner: 빌드(dist/) ─▶ S3 에 올리기 �
 3. **내 fork → Actions → 왼쪽 frontend → Run workflow** → 브랜치 `main` → **Run workflow** (처음 한 번은 화면 코드가 안 바뀌어 자동으로 안 돌므로 손으로 실행합니다).
 4. 실행 → **deploy → 로그**에서 `npm run build` 와 `aws s3 sync` 의 `upload:` 줄, `create-invalidation` 결과를 봅니다.
    ![frontend 실행의 deploy 로그: npm run build, s3 sync upload: 줄, create-invalidation 결과](images/day6/d6-08-actions-frontend.png)
-5. **S3 → `wonit-a-<이름>-web` → 객체** 맨 위에 `index.html` · `assets/` 가 있습니다 (`dist/` 폴더가 보이면 안 됩니다).
+5. **S3 → `wonit-a-<이름>-web` → 객체** 에 (폴더 안이 아니라 바로) `index.html` · `assets/` 가 있습니다 (`dist/` 폴더가 보이면 안 됩니다). 목록 정렬 때문에 `index.html` 은 아래쪽에 보일 수 있습니다.
    ![S3 객체 목록 맨 위에 index.html · assets/ · favicon.svg · icons.svg (dist/ 폴더 없음)](images/day6/d6-09-s3-objects.png)
 6. **브라우저 → `https://<이름>.woncare.shop`** (무효화에 몇 분) → Day 5 의 아이디로 로그인 → 입금으로 돈을 넣고 → 두 번째 회원(화면 회원가입)의 계좌로 1,000원 이체 → AI 도우미에 질문 하나.
    ![https://<이름>.woncare.shop 에 자물쇠가 있고 로그인 후 계좌 화면이 보이는 브라우저](images/day6/d6-10-site-login.png)

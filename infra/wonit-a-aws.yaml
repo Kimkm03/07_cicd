@@ -519,9 +519,37 @@ Resources:
       EstimatedInstanceWarmup: 120
       TargetTrackingConfiguration:
         TargetValue: !Ref RequestsPerTargetPerMinute
+        DisableScaleIn: true                 # 줄이기는 아래 QuietScaleIn 이 한다 (대상 추적의 축소 경보는 15분을 기다려 수업에서 보기 어렵다)
         PredefinedMetricSpecification:
           PredefinedMetricType: ALBRequestCountPerTarget
           ResourceLabel: !Join ['/', [!GetAtt AppLoadBalancer.LoadBalancerFullName, !GetAtt AppTargetGroup.TargetGroupFullName]]
+
+  # 빠른 축소: 1대당 요청이 분당 60(기준 600 의 10%) 아래로 3분 이어지면 → 서버를 최소(MinServers)로 한 번에 줄인다
+  QuietScaleInPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AppAutoScalingGroup
+      PolicyType: StepScaling
+      AdjustmentType: ExactCapacity
+      StepAdjustments:
+        - { MetricIntervalUpperBound: 0, ScalingAdjustment: !Ref MinServers }
+
+  QuietAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'wonit-a-${YourName}-prd-quiet-scale-in'
+      AlarmDescription: 'Requests per server below 60/min for 3 minutes -> shrink to MinServers'
+      Namespace: AWS/ApplicationELB
+      MetricName: RequestCountPerTarget
+      Dimensions:
+        - { Name: TargetGroup, Value: !GetAtt AppTargetGroup.TargetGroupFullName }
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 3
+      Threshold: 60
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching           # 요청이 하나도 없으면 ALB 가 숫자를 안 보낸다 → "없음" 도 조용한 것으로 친다
+      AlarmActions: [!Ref QuietScaleInPolicy]
 
   # =========================================================
   # 07. 모니터링 EC2 (ASG 밖, 1대 고정): Prometheus 가 ASG 서버를 찾고, Grafana 가 CloudWatch 를 읽는다

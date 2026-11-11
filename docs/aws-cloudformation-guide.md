@@ -142,7 +142,7 @@ flowchart LR
 | 03 RDS | MySQL 8.4 (`bankdb`), 사설 서브넷, 퍼블릭 액세스 아니요 |
 | 04 시작 템플릿 | 앱 서버가 켜질 때: Docker 설치 → `.env`(DB · JWT · Gemini) → `<도커허브ID>/wonbank:prod` 실행 |
 | 05 ALB | 대상 그룹(상태 검사 `/actuator/health`) · 리스너 80 · `/actuator/*` 는 밖에서 403 · 유휴 제한 15초 |
-| 06 Auto Scaling | 서버 1~3대, 사설 서브넷 2곳, 상태 검사 유예 300초, 교체 때 새 서버 먼저(100/200), **요청 수 기준 자동 확장 정책** |
+| 06 Auto Scaling | 서버 1~3대(`MinServers` · `MaxServers` 로 바꿈), 사설 서브넷 2곳, 상태 검사 유예 300초, 교체 때 새 서버 먼저(100/200), **요청 수 기준 자동 확장 정책** |
 | 07 모니터링 | 모니터링 EC2(공개 2c) + 탄력적 IP + 역할. 켜지면서 **Prometheus · Grafana** 컨테이너를 띄움. **Bastion**(t3.micro) |
 | 08 배포 역할 | GitHub Actions 용 **OIDC 역할**: 내 저장소 `main` 만 사용 가능, 할 수 있는 일은 서버 교체 · S3 업로드 · 무효화뿐 |
 | 09 화면 | S3 버킷(잠금) · OAC · CloudFront(동작 2개) · Route 53 A 별칭 |
@@ -355,7 +355,8 @@ flowchart LR
    | `DbPoolSize` | 기본값 `10` | 서버 1대의 DB 연결 수 |
    | `DbUsername` · `DbPassword` | 기본값 `admin` · `Wooriwon1!` | 그대로 |
    | `DbInstanceClass` | 기본값 `db.t3.micro` | |
-   | `DesiredCapacity` | 기본값 `1` | 처음 서버 수 (최대 3) |
+   | `MinServers` · `MaxServers` | 기본값 `1` · `3` | 서버 수 범위 (11단계에서 `2` · `5` 로 바꿔 봄) |
+   | `DesiredCapacity` | 기본값 `1` | 처음 서버 수 (범위 안에서) |
    | `RequestsPerTargetPerMinute` | 기본값 `600` | 서버 1대가 **1분**에 받는 요청이 이보다 많으면 서버를 늘림 |
    | `DomainName` | `<이름>.woncare.shop` | 인증서 스택과 같게 |
    | `HostedZoneId` | `Z…` | |
@@ -506,6 +507,8 @@ flowchart LR
    ```
    제목 `초당 이체 건수` → 저장. 사이트에서 이체를 몇 번 하면 선이 올라갑니다.
 7. (선택) 같은 대시보드에 CloudWatch 패널: Namespace `AWS/ApplicationELB`, Metric `RequestCount`, Statistic **Sum**, LoadBalancer 는 목록에서 `…-prd-alb` → 제목 `ALB 요청 수`
+8. **전체 상황판은 이미 들어 있습니다**: **Dashboards → WONIT → 우리WON 전체 상황판**. 19004 는 서버 한 대씩 보지만, 이 판은 서버를 **합쳐서**(합계 · 평균) 봅니다. 서버 수 · 전체 초당 요청 · 평균 응답 시간 · 평균 CPU · 힙 사용률 · DB 연결.
+   > 💡 이 판은 내 fork 의 `monitoring/grafana/wonit-overview.json` 입니다. 모니터링 EC2 가 켜질 때, 그리고 5분마다 GitHub 에서 받아 Grafana 가 저절로 읽습니다. JSON 을 고쳐 push 하면 5분 안에 바뀝니다. 위쪽 **데이터 소스** 에서 2번에 만든 Prometheus 를 고릅니다.
 
 <details><summary>📖 숫자 읽는 법</summary>
 
@@ -546,7 +549,7 @@ flowchart LR
    |---|---|
    | 초당 이체 건수가 오르고 응답 시간이 늘어남 | Grafana 내 패널 · 대시보드 19004 |
    | 경보 `TargetTracking-…-AlarmHigh` 가 **경보 상태** | CloudWatch → 경보 |
-   | 서버 수 1 → 2 → 3 | EC2 → Auto Scaling 그룹 → **활동** |
+   | 서버 수가 최대(`MaxServers`)까지 늘어남 | EC2 → Auto Scaling 그룹 → **활동** · 전체 상황판 **떠 있는 서버 수** |
    | 새 서버가 healthy | EC2 → 대상 그룹 → 대상 |
    | `up` 이 저절로 2 · 3줄 | Grafana Explore |
 
@@ -565,6 +568,7 @@ flowchart LR
 | 문 여는 범위 | `MyIpCidr` | 바로 적용 |
 | 확장 기준 | `RequestsPerTargetPerMinute` | 바로 적용 |
 | 처음 서버 수 | `DesiredCapacity` | 바로 적용 |
+| 서버 수 범위 (예: 최소 2 · 최대 5) | `MinServers` · `MaxServers` (+ `DesiredCapacity` 를 범위 안으로) | 바로 적용 |
 | DB 연결 수 실험 (예: 2) | `DbPoolSize` | 시작 템플릿 새 버전만 생깁니다 → **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침 → 시작** 으로 서버를 바꿔야 적용 |
 
 > ⚠️ 비밀값 칸(`JwtSecret` 등)은 업데이트 화면에서 **기존 값 사용** 을 고르면 다시 안 넣어도 됩니다. 콘솔에서 스택이 만든 자원을 직접 바꾸면, 다음 스택 업데이트 때 스택의 값으로 되돌아갈 수 있습니다.

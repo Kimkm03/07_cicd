@@ -52,9 +52,10 @@ Parameters:
     AllowedPattern: '^[a-z0-9._-]+/[a-z0-9._-]+:[A-Za-z0-9._-]+$'
     ConstraintDescription: 'e.g. mydockerid/wonbank:prod'
     Description: 'Image the app servers run (e.g. mydockerid/wonbank:prod). GitHub Actions moves the prod tag'
-  JwtSecret:
+  JwtSecret:                             # 수업용 고정값이 기본값으로 들어 있다 (실무에서는 사람마다 다른 긴 값을 쓴다)
     Type: String
     NoEcho: true
+    Default: 'replace-with-a-long-random-secret-key'
     MinLength: 32
     AllowedPattern: '^[A-Za-z0-9!#%^*_+=-]+$'
     ConstraintDescription: '32+ chars: letters, digits, ! # % ^ * _ + = -'

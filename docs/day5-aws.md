@@ -137,7 +137,7 @@
    git checkout t8-prod -- infra ci
    ```
 2. **콘솔 오른쪽 위 리전 → 미국 동부(버지니아 북부) us-east-1** 로 바꿉니다.
-3. **CloudFormation → 스택 → 스택 생성 → 새 리소스 사용(표준)** → **템플릿 파일 업로드** → `infra/wonit-a-cert.yaml` → 다음.
+3. **CloudFormation → 스택 → 스택 생성 → 기존 템플릿 선택** → **템플릿 파일 업로드** → `infra/wonit-a-cert.yaml` → 다음.
 4. 스택 이름과 파라미터를 채웁니다.
 
 | 칸 | 값 |
@@ -148,7 +148,7 @@
 | `HostedZoneId` | 5-3 에서 메모한 `Z…` |
 
    ![인증서 스택 파라미터 화면(스택 이름 · YourName · DomainName · HostedZoneId 입력됨)](images/day5/d5-02-cert-stack-params.png)
-5. 다음 → 태그 `Owner` = `<이름>` → 다음 → **제출**. 5~10분 뒤 **CREATE_COMPLETE** 가 됩니다.
+5. 다음 → 태그 `Owner` = `<이름>` → 다음 → **전송**. 5~10분 뒤 **CREATE_COMPLETE** 가 됩니다.
 6. **출력 탭 → `CertificateArn`** 값(`arn:aws:acm:us-east-1:…`)을 메모합니다.
    ![인증서 스택 출력 탭에 CertificateArn(arn:aws:acm:us-east-1:…)이 보이는 화면](images/day5/d5-03-cert-stack-output.png)
 7. 콘솔 오른쪽 위 리전을 **서울로 되돌립니다.**
@@ -334,12 +334,9 @@
 **한 줄로**: 빈칸 19개를 채워 `infra/wonit-a-aws.yaml` 을 올리면 건물부터 서버 · DB · 화면 창고 · 상황판까지 한 번에 지어집니다.
 
 **따라 하기**
-1. 준비물 6가지: 키 페어(5-2) · `CertificateArn`(5-4) · 호스팅 영역 `Z…`(5-3) · Docker Hub 의 `:prod`(6-3) · 내 fork(`아이디/저장소`) · `<내 IP>/32`(5-1). **IAM → 자격 증명 공급자** 에 `token.actions.githubusercontent.com` 이 **이미 있는지** 확인만 합니다 (계정에 하나면 모두 같이 씁니다).
-2. **내 PC (Git Bash)** → 로그인 서명용 비밀키(48자)를 만들어 메모합니다. 비밀번호 칸(`DbPassword` · `GrafanaPassword`)은 수업용 공통 비밀번호 `Wooriwon1!` 가 기본값으로 들어 있어 그대로 둡니다.
-   ```bash
-   openssl rand -hex 24
-   ```
-3. 리전이 **서울**인지 보고 **CloudFormation → 스택 → 스택 생성 → 새 리소스 사용(표준)** → **템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음.
+1. 준비물 6가지: 키 페어(5-2) · `CertificateArn`(5-4) · 호스팅 영역 `Z…`(5-3) · Docker Hub 의 `:prod`(6-3) · 내 fork(`아이디/저장소`) · `<내 IP>/32`(5-1). **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 **이미 있는지** 확인만 합니다 (계정에 하나면 모두 같이 씁니다).
+2. 비밀값 칸(`JwtSecret` · `DbPassword` · `GrafanaPassword`)은 수업용 기본값이 들어 있어 그대로 둡니다.
+3. 리전이 **서울**인지 보고 **CloudFormation → 스택 → 스택 생성 → 기존 템플릿 선택** → **템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음.
 4. 스택 이름 `wonit-a-<이름>-stack`, 파라미터는 아래처럼 채웁니다.
 
 | 칸 | 넣을 값 | 메모 |
@@ -348,7 +345,7 @@
 | `KeyName` | `wonit-a-<이름>-key` | 목록에서 고름 |
 | `MyIpCidr` | `<내 IP>/32` | Bastion · Grafana 문이 이 IP 에게만 열림 |
 | `DockerImage` | `<도커허브ID>/wonbank:prod` | 6교시 결과 |
-| `JwtSecret` | 3번의 48자 | 가려져 보임 |
+| `JwtSecret` | 기본값 `replace-with-a-long-random-secret-key` 그대로 | 가려져 보임 |
 | `GeminiApiKey` | 기본값 `no-key` | AI 키가 있으면 넣고, 없으면 AI 는 대체 답변 |
 | `DbUsername` · `DbPassword` | 기본값 `admin` · `Wooriwon1!` 그대로 | DB 계정 |
 | `DomainName` | `<이름>.woncare.shop` | 인증서 스택과 같게 |
@@ -360,7 +357,7 @@
 | `InstanceType` · `DbInstanceClass` · `DbPoolSize` · `DesiredCapacity` · `RequestsPerTargetPerMinute` | 기본값 그대로 | Day 7 에서 일부를 바꿔 봄 |
 
    ![서울 스택 파라미터 화면(YourName · KeyName · MyIpCidr · DockerImage · DomainName · CertificateArn 등 입력됨, 비밀값은 가려짐)](images/day5/d5-09-stack-params.png)
-5. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면에서 **IAM 리소스를 만들 수 있음**(역할 2개를 만듭니다)에 **체크** → **제출**. 15~20분 걸립니다.
+5. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면에서 **IAM 리소스를 만들 수 있음**(역할 2개를 만듭니다)에 **체크** → **전송**. 15~20분 걸립니다.
 
 **✅ 되었으면**: 스택 `wonit-a-<이름>-stack` 이 **CREATE_IN_PROGRESS** 로 시작했습니다.
 

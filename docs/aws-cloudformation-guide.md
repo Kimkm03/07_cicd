@@ -337,12 +337,8 @@ flowchart LR
 1. **준비물 확인**: 키 페어(1) · `Z…`(2) · `CertificateArn`(3) · Docker Hub 의 `:prod`(4) · 내 fork 이름(`아이디/07_cicd`)
 2. **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 있는지 **확인만** 합니다 (계정에 하나만 있으면 모두 같이 씁니다).
    - 없으면: **공급자 추가 → OpenID Connect**, 공급자 URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com` → **공급자 추가**. URL 칸에는 `https://` 가 미리 들어 있을 수 있으니 두 번 들어가지 않게 봅니다.
-3. **내 PC (Git Bash)** → 로그인 토큰 서명용 비밀키(48자)를 만들어 복사합니다.
-   ```bash
-   openssl rand -hex 24
-   ```
-4. 리전 **서울** 확인 → **CloudFormation → 스택 생성 → 기존 템플릿 선택 → 템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음
-5. 스택 이름 `wonit-a-<이름>-stack`, 파라미터:
+3. 리전 **서울** 확인 → **CloudFormation → 스택 생성 → 기존 템플릿 선택 → 템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음
+4. 스택 이름 `wonit-a-<이름>-stack`, 파라미터:
 
    | 칸 | 넣을 값 | 설명 |
    |---|---|---|
@@ -352,7 +348,7 @@ flowchart LR
    | `InstanceType` | 기본값 `t3.small` | 앱 · 모니터링 서버 크기 |
    | `GitHubRepo` | `<GitHub 아이디>/07_cicd` | 배포 역할이 이 저장소의 main 만 받음 |
    | `DockerImage` | `<도커허브ID>/wonbank:prod` | 4단계 결과 |
-   | `JwtSecret` | 3번의 48자 | 화면에서 가려짐 |
+   | `JwtSecret` | 기본값 `replace-with-a-long-random-secret-key` | 그대로 (로그인 토큰 서명용 비밀키, 화면에서 가려짐) |
    | `GeminiApiKey` | 기본값 `no-key` | 키가 있으면 넣음. 없으면 AI 는 대체 답변 |
    | `DbPoolSize` | 기본값 `10` | 서버 1대의 DB 연결 수 |
    | `DbUsername` · `DbPassword` | 기본값 `admin` · `Wooriwon1!` | 그대로 |
@@ -365,8 +361,8 @@ flowchart LR
    | `CloudFrontPrefixListId` | 기본값 그대로 | "CloudFront 가 쓰는 주소 모음" ID |
    | `GrafanaPassword` | 기본값 `Wooriwon1!` | 그대로 (Grafana 로그인 비밀번호) |
 
-6. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면 **IAM 리소스를 만들 수 있음** 체크 → **전송**
-7. 기다리는 동안 **이벤트** 탭을 새로고침하며 봅니다. 네트워크 → 보안 그룹 → RDS → ALB … 순서로 `CREATE_COMPLETE` 가 늘어납니다. RDS 와 CloudFront 가 가장 오래 걸립니다.
+5. 다음 → 태그 `Owner` = `<이름>` → 다음 → 마지막 화면 **IAM 리소스를 만들 수 있음** 체크 → **전송**
+6. 기다리는 동안 **이벤트** 탭을 새로고침하며 봅니다. 네트워크 → 보안 그룹 → RDS → ALB … 순서로 `CREATE_COMPLETE` 가 늘어납니다. RDS 와 CloudFront 가 가장 오래 걸립니다.
 
 **⚠️ 틀리기 쉬운 곳**
 - 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/32`, `CertificateArn` 은 us-east-1).
@@ -438,7 +434,7 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 
 2. **내 PC** → 서버 코드 한 곳을 고쳐 push 합니다 (예: 아무 클래스의 주석 한 줄).
    ```bash
-   git add -A && git commit -m "chore: 배포 연습" && git push mine HEAD:main
+   git add -A && git commit -m "chore: 배포 연습" && git push origin main
    ```
 3. **Actions → backend** 의 deploy 에서 AWS 두 단계까지 초록이 됩니다.
 4. **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침** 탭에서 진행률을 봅니다. 새 서버가 먼저 뜨고 healthy 가 된 뒤 옛 서버가 내려갑니다 (끊김 없이 교체).

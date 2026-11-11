@@ -88,14 +88,16 @@ flowchart LR
 
 ### 보안 그룹: "바로 앞 단계에서 온 것만 받는다"
 
-인터넷 전체(0.0.0.0/0)에 열린 문은 하나도 없습니다.
+수업에서는 Bastion SSH(22) 와 Grafana(3000) 만 인터넷 전체(`0.0.0.0/0`)에 엽니다 (`MyIpCidr` 기본값). 나머지 문은 모두 바로 앞 단계에서 온 것만 받습니다.
+
+> 💡 실무라면 `MyIpCidr` 를 `<내 IP>/32` 로 좁혀 이 두 문도 내 PC 에게만 엽니다.
 
 | 보안 그룹 | 붙는 곳 | 들어올 수 있는 것 |
 |---|---|---|
 | `…-prd-web-sg` | ALB | 80 ← **CloudFront** 만 (+ 모니터링 EC2, 부하 테스트용) |
-| `…-prd-bastion-sg` | Bastion | 22 ← **내 IP** 만 |
+| `…-prd-bastion-sg` | Bastion | 22 ← `MyIpCidr` (기본 `0.0.0.0/0`) |
 | `…-prd-app-sg` | 앱 서버 | 8080 ← ALB · 모니터링, 22 · 8080 ← Bastion |
-| `…-prd-mon-sg` | 모니터링 EC2 | 3000(Grafana) ← **내 IP**, 22 ← Bastion |
+| `…-prd-mon-sg` | 모니터링 EC2 | 3000(Grafana) ← `MyIpCidr` (기본 `0.0.0.0/0`), 22 ← Bastion |
 | `…-prd-db-sg` | RDS | 3306 ← 앱 서버 · Bastion · 모니터링 |
 
 ---
@@ -344,7 +346,7 @@ flowchart LR
    |---|---|---|
    | `YourName` | `<이름>` | 모든 자원 이름 앞에 붙음 |
    | `KeyName` | `wonit-a-<이름>-key` | 목록에서 고름 |
-   | `MyIpCidr` | `<내 IP>/32` | 내 PC 에서 `curl -s https://checkip.amazonaws.com` 결과 뒤에 `/32`. Bastion SSH · Grafana 를 이 IP 에게만 엶 (와이파이가 바뀌면 11단계로 수정) |
+   | `MyIpCidr` | 기본값 `0.0.0.0/0` 그대로 | Bastion SSH · Grafana 를 누구에게 열지. 수업은 전체 공개 |
    | `InstanceType` | 기본값 `t3.small` | 앱 · 모니터링 서버 크기 |
    | `GitHubRepo` | `<GitHub 아이디>/07_cicd` | 배포 역할이 이 저장소의 main 만 받음 |
    | `DockerImage` | `<도커허브ID>/wonbank:prod` | 4단계 결과 |
@@ -365,7 +367,7 @@ flowchart LR
 6. 기다리는 동안 **이벤트** 탭을 새로고침하며 봅니다. 네트워크 → 보안 그룹 → RDS → ALB … 순서로 `CREATE_COMPLETE` 가 늘어납니다. RDS 와 CloudFront 가 가장 오래 걸립니다.
 
 **⚠️ 틀리기 쉬운 곳**
-- 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/32`, `CertificateArn` 은 us-east-1).
+- 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/숫자` 모양, `CertificateArn` 은 us-east-1).
 - `ROLLBACK_COMPLETE` → **이벤트 탭에서 처음 빨갛게 실패한 줄**의 이유를 읽고, 스택을 **삭제한 뒤** 다시 만듭니다.
 - 같은 이름의 자원이 이미 있다 → 예전에 콘솔로 만든 것(키 페어 말고)이 남아 있습니다. 지우고 다시.
 
@@ -560,7 +562,7 @@ flowchart LR
 
 | 바꿔 볼 것 | 칸 | 적용 |
 |---|---|---|
-| 내 IP 가 바뀜 | `MyIpCidr` | 바로 적용 |
+| 문 여는 범위 | `MyIpCidr` | 바로 적용 |
 | 확장 기준 | `RequestsPerTargetPerMinute` | 바로 적용 |
 | 처음 서버 수 | `DesiredCapacity` | 바로 적용 |
 | DB 연결 수 실험 (예: 2) | `DbPoolSize` | 시작 템플릿 새 버전만 생깁니다 → **EC2 → Auto Scaling 그룹 → 인스턴스 새로 고침 → 시작** 으로 서버를 바꿔야 적용 |
@@ -595,9 +597,9 @@ flowchart LR
 | 로그인 후 `401` | 토큰 만료 · 다시 로그인 | 화면에서 다시 로그인 |
 | 화면이 옛날 그대로 | 브라우저 캐시 | `Ctrl+Shift+R` (무효화는 workflow 가 함) |
 | Actions `Not authorized to perform sts:AssumeRoleWithWebIdentity` | 저장소 이름 · 브랜치 | 스택의 `GitHubRepo` 가 내 fork 와 같은지, push 가 `main` 인지 |
-| Grafana 가 안 열림 | 내 IP 가 바뀜 | 11단계로 `MyIpCidr` 업데이트 |
+| Grafana 가 안 열림 | 모니터링 EC2 가 켜진 지 5분이 안 됨 · `MyIpCidr` 를 좁혀 둠 | 잠시 뒤 다시, `MyIpCidr` 확인 |
 | Grafana `up` 이 비어 있음 | 서버가 아직 안 뜸 | 대상 그룹 healthy 확인 후 잠시 뒤 |
-| SSH `Connection timed out` | 내 IP 바뀜 · Bastion 을 안 거침 | `MyIpCidr` 확인, 출력의 명령 그대로 사용 |
+| SSH `Connection timed out` | `MyIpCidr` 를 좁혀 둠 · Bastion 을 안 거침 | `MyIpCidr` 확인, 출력의 명령 그대로 사용 |
 | 스택 삭제 `DELETE_FAILED` | S3 가 비어 있지 않음 | 버킷 비우고 다시 삭제 |
 
 ## 6. 용어 사전

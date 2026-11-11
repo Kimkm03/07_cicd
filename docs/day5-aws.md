@@ -71,22 +71,18 @@
 
 </details>
 
-## 🃏 카드 5-1. 콘솔 · 리전 · 이름 규칙 · 내 IP
+## 🃏 카드 5-1. 콘솔 · 리전 · 이름 규칙
 
 **한 줄로**: 은행 지점은 도시마다 따로 있으니 오른쪽 위 도시(리전)를 먼저 봅니다.
 
 **따라 하기**
 1. **콘솔 오른쪽 위 리전 메뉴 → 아시아 태평양(서울) ap-northeast-2** 를 고릅니다.
-2. **내 PC (Git Bash)** → 내 공인 IP 를 확인하고 뒤에 `/32`(이 주소 하나)를 붙여 메모합니다 (`MyIpCidr` 칸에 들어갑니다).
-   ```bash
-   curl -s https://checkip.amazonaws.com        # 예: 203.0.113.10  →  203.0.113.10/32
-   ```
-3. 이름은 `wonit-a-<이름>-…`(영문 소문자 · 숫자 · 하이픈, 2~16자), 태그는 `Owner` = `<이름>` 입니다.
+2. 이름은 `wonit-a-<이름>-…`(영문 소문자 · 숫자 · 하이픈, 2~16자), 태그는 `Owner` = `<이름>` 입니다.
 
-**✅ 되었으면**: 오른쪽 위에 **서울**, 메모장에 `<내 IP>/32`.
+**✅ 되었으면**: 오른쪽 위에 **서울**.
 
 **⚠️ 틀리기 쉬운 곳**
-- 만든 자원이 목록에 안 보임 → 지워진 게 아니라 **리전이 다른 것**입니다. 와이파이가 바뀌면 내 IP 도 바뀝니다 (Day 6 12-1).
+- 만든 자원이 목록에 안 보임 → 지워진 게 아니라 **리전이 다른 것**입니다.
 
 ## 🃏 카드 5-2. 키 페어
 
@@ -334,7 +330,7 @@
 **한 줄로**: 빈칸 19개를 채워 `infra/wonit-a-aws.yaml` 을 올리면 건물부터 서버 · DB · 화면 창고 · 상황판까지 한 번에 지어집니다.
 
 **따라 하기**
-1. 준비물 6가지: 키 페어(5-2) · `CertificateArn`(5-4) · 호스팅 영역 `Z…`(5-3) · Docker Hub 의 `:prod`(6-3) · 내 fork(`아이디/저장소`) · `<내 IP>/32`(5-1). **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 **이미 있는지** 확인만 합니다 (계정에 하나면 모두 같이 씁니다).
+1. 준비물 5가지: 키 페어(5-2) · `CertificateArn`(5-4) · 호스팅 영역 `Z…`(5-3) · Docker Hub 의 `:prod`(6-3) · 내 fork(`아이디/저장소`). **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 **이미 있는지** 확인만 합니다 (계정에 하나면 모두 같이 씁니다).
 2. 비밀값 칸(`JwtSecret` · `DbPassword` · `GrafanaPassword`)은 수업용 기본값이 들어 있어 그대로 둡니다.
 3. 리전이 **서울**인지 보고 **CloudFormation → 스택 → 스택 생성 → 기존 템플릿 선택** → **템플릿 파일 업로드** → `infra/wonit-a-aws.yaml` → 다음.
 4. 스택 이름 `wonit-a-<이름>-stack`, 파라미터는 아래처럼 채웁니다.
@@ -343,7 +339,7 @@
 |---|---|---|
 | `YourName` | `<이름>` | 소문자 2~16자 |
 | `KeyName` | `wonit-a-<이름>-key` | 목록에서 고름 |
-| `MyIpCidr` | `<내 IP>/32` | Bastion · Grafana 문이 이 IP 에게만 열림 |
+| `MyIpCidr` | 기본값 `0.0.0.0/0` 그대로 | Bastion · Grafana 문을 누구에게 열지 (수업은 전체 공개, 실무는 `<내 IP>/32`) |
 | `DockerImage` | `<도커허브ID>/wonbank:prod` | 6교시 결과 |
 | `JwtSecret` | 기본값 `replace-with-a-long-random-secret-key` 그대로 | 가려져 보임 |
 | `GeminiApiKey` | 기본값 `no-key` | AI 키가 있으면 넣고, 없으면 AI 는 대체 답변 |
@@ -362,7 +358,7 @@
 **✅ 되었으면**: 스택 `wonit-a-<이름>-stack` 이 **CREATE_IN_PROGRESS** 로 시작했습니다.
 
 **⚠️ 틀리기 쉬운 곳**
-- 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/32`, `CertificateArn` 은 `us-east-1`, `DbPassword` 에 `/ @ "` 와 공백 불가).
+- 칸이 빨갛게 거부 → 모양 규칙입니다 (`MyIpCidr` 는 `…/숫자` 모양, `CertificateArn` 은 `us-east-1`, `DbPassword` 에 `/ @ "` 와 공백 불가).
 - `ROLLBACK` → **이벤트 탭의 첫 실패 줄**을 읽고 스택을 **삭제한 뒤** 다시 만듭니다.
 - 공급자가 없으면: **IAM → 자격 증명 공급자 → 공급자 추가 → OpenID Connect**, URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com`.
 
@@ -465,9 +461,9 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 | 보안 그룹 | 붙는 곳 | 인바운드 |
 |---|---|---|
 | `…-prd-web-sg` | ALB | 80 ← **CloudFront 접두사 목록** + 모니터링 EC2 탄력적 IP/32 (k6 용) |
-| `…-prd-bastion-sg` | Bastion | 22 ← 내 IP |
+| `…-prd-bastion-sg` | Bastion | 22 ← `MyIpCidr` (기본 `0.0.0.0/0`) |
 | `…-prd-app-sg` | 앱 서버 | 8080 ← web-sg · mon-sg · bastion-sg, 22 ← bastion-sg |
-| `…-prd-mon-sg` | 모니터링 EC2 | 3000 ← 내 IP, 22 ← bastion-sg |
+| `…-prd-mon-sg` | 모니터링 EC2 | 3000 ← `MyIpCidr` (기본 `0.0.0.0/0`), 22 ← bastion-sg |
 | `…-prd-db-sg` | RDS | 3306 ← app-sg · bastion-sg · mon-sg |
 
 3. **EC2 → 로드 밸런서 → `…-prd-alb` → 리스너 및 규칙**: HTTP:80 에 `/actuator/*` → 고정 응답 **403** 과 기본 → 대상 그룹. **속성** 탭의 연결 유휴 제한 시간은 **15초**.

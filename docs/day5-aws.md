@@ -3,7 +3,7 @@
 > 태그 `t8-prod` · 시작 코드 `t7-docker`<br>
 > 앞 단계: Day 4 Docker → **Day 5** → 다음: [Day 6 화면 자동 배포 · 모니터링](day6-cicd-monitoring.md)
 
-> 🆘 **늦었을 때**: 코드는 오늘 끝 모양인 `t8-prod` 로 맞춥니다. 스택은 7교시 그대로 만들면 됩니다 (5교시 준비물 3가지 + 6교시 `:prod` 이미지만 있으면 됩니다).
+> 🆘 **늦었을 때**: 코드는 오늘 끝 모양인 `t8-prod` 로 맞춥니다. 스택은 파트 7 그대로 만들면 됩니다 (파트 5 준비물 3가지 + 파트 6 `:prod` 이미지만 있으면 됩니다).
 >
 > ```bash
 > git fetch origin --tags --force && git switch -c my-t8 t8-prod
@@ -25,7 +25,7 @@
 
 ## ⏱ 흐름
 
-| 교시 | 카드 | 미니실습 (15분) | 산출물 |
+| 파트 | 카드 | 미니실습 (15분) | 산출물 |
 |---|---|---|---|
 | 5 | 5-0 먼저 알기 / 5-1 리전 · IP / 5-2 키 페어 / 5-3 도메인 / 5-4 인증서 스택 | `nslookup` NS 비교 | 키 페어 · 호스팅 영역 ID · **CertificateArn** |
 | 6 | 6-0 먼저 알기 / 6-1 fork / 6-2 운영 코드 / 6-3 토큰 · push | 테스트를 일부러 깨뜨리기 | Actions 초록, Docker Hub 의 `:prod` |
@@ -38,7 +38,7 @@
 
 ---
 
-# 5교시. 준비: 리전 · 키 페어 · 도메인 · 인증서 스택
+# 파트 5. 준비: 리전 · 키 페어 · 도메인 · 인증서 스택
 
 ## 🃏 카드 5-0. 먼저 알기: AWS 큰 그림과 CloudFormation (10분)
 
@@ -168,9 +168,9 @@
 
 </details>
 
-# 6교시. 서버 CI: push 하면 테스트하고 이미지를 만든다
+# 파트 6. 서버 CI: push 하면 테스트하고 이미지를 만든다
 
-> 💡 **이 교시의 목표**: push 한 번에 GitHub Actions 가 **테스트 → 이미지 → `:prod` 이름표**까지 해 줍니다. **이 `:prod` 이미지가 7교시 스택보다 먼저 있어야** 앱 서버가 정상(healthy)이 됩니다. 초록이 될 때까지 7교시로 넘어가지 않습니다.
+> 💡 **이 파트의 목표**: push 한 번에 GitHub Actions 가 **테스트 → 이미지 → `:prod` 이름표**까지 해 줍니다. **이 `:prod` 이미지가 파트 7 스택보다 먼저 있어야** 앱 서버가 정상(healthy)이 됩니다. 초록이 될 때까지 파트 7로 넘어가지 않습니다.
 
 ## 🃏 카드 6-0. 먼저 알기: CI/CD 와 GitHub Actions (10분)
 
@@ -188,7 +188,7 @@
 
 | 말 | 뜻 | 오늘 |
 |---|---|---|
-| **CI** / **CD** | 코드가 올라오면 자동 **테스트 · 이미지 만들기** / 만든 이미지를 **서버에 자동 내보내기** | 6교시 CI / 8교시 CD |
+| **CI** / **CD** | 코드가 올라오면 자동 **테스트 · 이미지 만들기** / 만든 이미지를 **서버에 자동 내보내기** | 파트 6 CI / 파트 8 CD |
 | **workflow** | 작업 순서 한 권. `.github/workflows/` 안에 있어야 읽힌다 | `backend.yml` |
 | **`on:`** | 언제 돌릴지 | `main` 에 push |
 | **job · `needs:`** | runner 한 대의 일 묶음 / "앞 job 이 성공해야 시작" | `test` → `build` → `deploy` |
@@ -268,7 +268,7 @@
 | `on: push: branches: [main]` | main 에 push 하면 돈다 (화면 · 문서만 바뀐 push 는 건너뜀) |
 | `test` → `build` → `deploy` | 앞 잡이 성공해야 다음. 깨지면 빨간 X |
 | `deploy` 의 `imagetools create` | 이번 커밋 이미지에 **`:prod` 이름표**를 붙인다 (서버는 늘 `:prod` 를 받는다) |
-| `if: vars.ASG_NAME != ''` | 변수가 있을 때만 AWS 에 들어가 서버를 교체한다. 8교시 전까지 **"건너뜀"** |
+| `if: vars.ASG_NAME != ''` | 변수가 있을 때만 AWS 에 들어가 서버를 교체한다. 파트 8 전까지 **"건너뜀"** |
 
 **✅ 되었으면**: `git diff` 에 `WebConfig.java` 말고 다른 파일이 없고, `.github/workflows/backend.yml` 이 있습니다.
 
@@ -308,7 +308,7 @@
 **⚠️ 틀리기 쉬운 곳**
 - `Username required` → 변수가 비었습니다. 시크릿 쪽에 넣으면 `vars.` 가 못 읽습니다.
 - `unauthorized: incorrect username or password` → 시크릿 이름 오타 · 토큰 잘림 · 읽기 전용 토큰. 토큰을 다시 만들어 덮어씁니다.
-- 🚨 초록이 아니면 7교시 서버가 `:prod` 를 못 받아 unhealthy 입니다.
+- 🚨 초록이 아니면 파트 7 서버가 `:prod` 를 못 받아 unhealthy 입니다.
 
 ### ✍️ 해 보기 (15분)
 `src/test/java/com/example/wonit/AuthFlowTest.java` 의 `status().isCreated()` 하나를 `status().isOk()` 로 바꿔 push → test 빨간 X, build · deploy 회색을 확인하고, **반드시 되돌립니다** (`git revert --no-edit HEAD && git push mine HEAD:main`).
@@ -323,7 +323,7 @@
 
 </details>
 
-# 7교시. 스택 하나로 전부 짓기
+# 파트 7. 스택 하나로 전부 짓기
 
 ## 🃏 카드 7-1. 서울 스택 만들기
 
@@ -340,7 +340,7 @@
 | `YourName` | `<이름>` | 소문자 2~16자 |
 | `KeyName` | `wonit-a-<이름>-key` | 목록에서 고름 |
 | `MyIpCidr` | 기본값 `0.0.0.0/0` 그대로 | Bastion · Grafana 문을 누구에게 열지 (수업은 전체 공개, 실무는 `<내 IP>/32`) |
-| `DockerImage` | `<도커허브ID>/wonbank:prod` | 6교시 결과 |
+| `DockerImage` | `<도커허브ID>/wonbank:prod` | 파트 6 결과 |
 | `JwtSecret` | 기본값 `replace-with-a-long-random-secret-key` 그대로 | 가려져 보임 |
 | `GeminiApiKey` | 기본값 `no-key` | AI 키가 있으면 넣고, 없으면 AI 는 대체 답변 |
 | `DbUsername` · `DbPassword` | 기본값 `admin` · `Wooriwon1!` 그대로 | DB 계정 |
@@ -400,7 +400,7 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 **✅ 되었으면**: 이벤트 탭에서 RDS 와 CloudFront 가 가장 오래 걸리는 것을 봤고, 표의 9개 구역을 템플릿 탭에서 찾았습니다.
 
 **⚠️ 틀리기 쉬운 곳**
-- 빨간 `CREATE_FAILED` 는 그 줄의 이유(Status reason)를 읽습니다. 서버는 켜질 때 `:prod` 를 **한 번** 받아서, 8교시 CD 가 "서버 교체" 입니다.
+- 빨간 `CREATE_FAILED` 는 그 줄의 이유(Status reason)를 읽습니다. 서버는 켜질 때 `:prod` 를 **한 번** 받아서, 파트 8 CD 가 "서버 교체" 입니다.
 
 ## 🃏 카드 7-3. 다 지어졌으면: 출력 읽기와 첫 API
 
@@ -413,9 +413,9 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 | 출력 | 어디에 쓰나 |
 |---|---|
 | `SiteUrl` | 내 사이트 주소 `https://<이름>.woncare.shop` (화면은 Day 6 에 올라감) |
-| `AsgName` · `DeployRoleArn` | 8교시 GitHub 변수 `ASG_NAME` · `AWS_DEPLOY_ROLE_ARN` |
+| `AsgName` · `DeployRoleArn` | 파트 8 GitHub 변수 `ASG_NAME` · `AWS_DEPLOY_ROLE_ARN` |
 | `WebBucketName` · `CloudFrontDistributionId` | Day 6 GitHub 변수 `WEB_BUCKET` · `CF_DISTRIBUTION_ID` |
-| `GrafanaUrl` | Day 6 12교시 상황판 주소 |
+| `GrafanaUrl` | Day 6 파트 12 상황판 주소 |
 | `AlbDnsName` | Day 7 부하 테스트 대상 |
 | `BastionIp` · `AppSsh` · `MonitoringSsh` | 쪽문 주소, 앱 서버 / 모니터링 EC2 에 SSH 하는 명령 (8-3 · Day 7) |
 | `SwaggerTunnel` · `RdsEndpoint` | (선택) Swagger 터널 명령 / 참고용 DB 주소 (이미 서버 설정에 들어 있음) |
@@ -434,7 +434,7 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 - `Could not resolve host` → 주소 반영 전입니다. 1~2분 뒤 다시. `POST` 가 `403 Invalid CORS request` 면 6-2 의 `WebConfig` 주소를 봅니다.
 
 ### ✍️ 해 보기 (15분)
-템플릿 탭에서 `# 05.` 구역의 보안 그룹 5개를 세어 보고, 출력 중 8교시에 쓸 2개(`DeployRoleArn` · `AsgName`)를 메모장에 복사해 둡니다.
+템플릿 탭에서 `# 05.` 구역의 보안 그룹 5개를 세어 보고, 출력 중 파트 8에 쓸 2개(`DeployRoleArn` · `AsgName`)를 메모장에 복사해 둡니다.
 
 ### 🧩 체크
 1. 파라미터 `DockerImage` 를 `:prod` 로 정한 이유는?
@@ -446,7 +446,7 @@ docker run -d --name wonbank --restart unless-stopped -p 8080:8080 --env-file /o
 
 </details>
 
-# 8교시. 둘러보기 · 자가 치유 · 서버 CD
+# 파트 8. 둘러보기 · 자가 치유 · 서버 CD
 
 ## 🃏 카드 8-1. 스택이 만든 것 둘러보기
 

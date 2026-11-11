@@ -294,7 +294,7 @@ flowchart LR
 
 1. **GitHub → `WONIT-A/07_cicd` → Fork → Create fork** (Actions 는 내 저장소에서 돌기 때문입니다). workflow 두 개(`.github/workflows/backend.yml` · `frontend.yml`)는 이미 들어 있습니다.
 2. **내 fork → Actions 탭** → **I understand my workflows, go ahead and enable them** 버튼을 누릅니다 (fork 한 저장소는 workflow 가 꺼진 채로 시작합니다).
-3. **Docker Hub → Account settings → Personal access tokens → Generate new token** → 권한 **Read & Write** → 토큰을 복사합니다.
+3. **Docker Hub → 오른쪽 위 프로필 → Account settings → 왼쪽 Personal access tokens → Generate new token** → 설명(예: `wonit-a-<이름>-github-actions`), 권한 **Repo Read & Write** → **Generate** → 토큰을 복사합니다 (창을 닫으면 다시 볼 수 없습니다).
 4. **내 fork → Settings → Secrets and variables → Actions**
 
    | 종류 | Name | Value |
@@ -330,12 +330,13 @@ flowchart LR
 **⚠️ 틀리기 쉬운 곳**
 - Actions 에 아무것도 안 뜸 → 2번에서 workflow 를 켰는지, 6번 push 가 `main` 으로 갔는지 봅니다.
 - build 가 `unauthorized` → 변수 · 시크릿 이름(대소문자)과 토큰 권한(Read & Write)을 봅니다.
+- build 가 `Password required` → 4번 시크릿을 넣기 **전에** push 한 것입니다. 시크릿을 넣고 그 실행에서 **Re-run jobs → Re-run failed jobs** 를 누릅니다.
 
 ### 5단계. 서울 스택 — 전부 짓기
 
 1. **준비물 확인**: 키 페어(1) · `Z…`(2) · `CertificateArn`(3) · Docker Hub 의 `:prod`(4) · 내 fork 이름(`아이디/07_cicd`)
-2. **IAM → 자격 증명 공급자** 에 `token.actions.githubusercontent.com` 이 있는지 **확인만** 합니다 (계정에 하나만 있으면 모두 같이 씁니다).
-   - 없으면: **공급자 추가 → OpenID Connect**, URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com`
+2. **IAM → ID 제공업체** 에 `token.actions.githubusercontent.com` 이 있는지 **확인만** 합니다 (계정에 하나만 있으면 모두 같이 씁니다).
+   - 없으면: **공급자 추가 → OpenID Connect**, 공급자 URL `https://token.actions.githubusercontent.com`, 대상 `sts.amazonaws.com` → **공급자 추가**. URL 칸에는 `https://` 가 미리 들어 있을 수 있으니 두 번 들어가지 않게 봅니다.
 3. **내 PC (Git Bash)** → 로그인 토큰 서명용 비밀키(48자)를 만들어 복사합니다.
    ```bash
    openssl rand -hex 24

@@ -14,7 +14,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:5173", "https://myname.woncare.shop")   // 🚨 "*" 로 모두에게 열지 않는다. 뒤의 주소는 내 도메인으로 바꾼다
+                .allowedOrigins("http://localhost:5173", "https://kimkyeongmo.woncare.shop")   // 🚨 "*" 로 모두에게 열지 않는다. 뒤의 주소는 내 도메인으로 바꾼다
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE")
                 .allowedHeaders("*")
                 .exposedHeaders("X-Request-Id", "Location");  // 응답 헤더를 JS 에서 읽으려면 노출 허락이 따로 필요하다
